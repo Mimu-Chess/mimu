@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItemButton, ListItemIcon, ListItemText, Typography, Box, CircularProgress, TextField, IconButton, Tooltip, Chip, Divider, } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Folder as FolderIcon, InsertDriveFile as FileIcon, ArrowUpward as UpIcon, Refresh as RefreshIcon, Computer as ComputerIcon, ChevronRight as ChevronRightIcon, Description as DocumentsIcon, Download as DownloadsIcon, Image as PicturesIcon, Movie as VideosIcon, LibraryMusic as MusicIcon, DesktopWindows as DesktopIcon, } from '@mui/icons-material';
+import { serverUrl } from '../../lib/server';
 interface FileEntry {
     name: string;
     fullPath: string;
@@ -58,8 +59,8 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
     const [pathInput, setPathInput] = useState('');
     const loadRoot = useCallback(async () => {
         const [filesRes, placesRes] = await Promise.all([
-            fetch('http://localhost:3001/api/files'),
-            fetch('http://localhost:3001/api/files/places'),
+            fetch(serverUrl('/api/files')),
+            fetch(serverUrl('/api/files/places')),
         ]);
         const filesData = await filesRes.json();
         const placesData = await placesRes.json();
@@ -76,7 +77,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
         try {
             const data = dir
                 ? await (async () => {
-                    const res = await fetch(`http://localhost:3001/api/files?path=${encodeURIComponent(dir)}`);
+                    const res = await fetch(serverUrl(`/api/files?path=${encodeURIComponent(dir)}`));
                     const json = await res.json();
                     if (!res.ok)
                         throw new Error(json.error || 'Failed to list directory');

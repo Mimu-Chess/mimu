@@ -7,12 +7,6 @@ server/dist/
 coverage/
 .nyc_output/
 
-client/src-tauri/target/
-client/src-tauri/target-check/
-client/src-tauri/target-check-serial/
-client/src-tauri/gen/
-client/src-tauri/bin/
-
 backup/
 
 logs/
