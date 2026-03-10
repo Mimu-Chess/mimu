@@ -1,0 +1,17 @@
+[package]
+name = "mimu-chess-desktop"
+version = "1.0.0"
+description = "Mimu Chess desktop shell"
+authors = ["rxnd0m_dev"]
+edition = "2024"
+
+[package.metadata.tauri-winres]
+ProductName = "Mimu Chess"
+FileDescription = "Mimu Chess desktop shell"
+OriginalFilename = "MimuChess.exe"
+
+[build-dependencies]
+tauri-build = { version = "2.0.5", features = [] }
+
+[dependencies]
+tauri = { version = "2.2.5", features = [] }
