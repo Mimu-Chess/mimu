@@ -1,22 +1,88 @@
 # Mimu Chess
 
-Mimu Chess is a local UCI chess client with a React frontend, a Bun/Express Socket.IO server, and an optional Neutralino desktop shell.
+Mimu Chess is a local-first chess desktop app for playing against UCI engines, running engine matches, reviewing saved games, and analyzing positions from your own history.
 
-It is built for running chess engines on your own machine. You can play against an engine, run engine-vs-engine matches, inspect live engine output, and export PGN results.
+It is built for people who want their engines, PGNs, and configuration to stay on their machine.
 
-## Features
+## Screenshots
 
-- Play human vs AI with a local UCI engine
-- Run automated engine matches
-- Add and remove engines from the UI
-- Support engines that need a separate weights file, such as LC0 or Maia
-- Show live engine search info while the engine is thinking
-- Export game and match PGN
-- Run in the browser during development or as a Neutralino desktop app
+Screenshot placeholders:
+
+- `docs/screenshots/play-vs-ai.png`
+- `docs/screenshots/engine-matches.png`
+- `docs/screenshots/game-analysis.png`
+- `docs/screenshots/engine-manager.png`
+- `docs/screenshots/game-history.png`
+
+## What It Does
+
+- Play against a local UCI engine with configurable side and think time.
+- Run engine-vs-engine matches and track score across multiple games.
+- Save completed games as PGN files in the app config directory.
+- Replay saved games directly inside the app move by move.
+- Analyze saved games with any configured engine from the dedicated Analysis view.
+- Inspect live engine output including depth, eval, PV, nodes, and NPS.
+- Manage engine executables and weights-based engines such as LC0 or Maia.
+- Use built-in game history filtering, including preset time ranges and custom date/time ranges.
+- Switch between multiple board/app themes.
+- Run as a local desktop app through Neutralino, with browser-based development available as well.
+
+## Feature Overview
+
+### Play vs AI
+
+- Start a human-vs-engine game with your chosen engine.
+- Play as White or Black.
+- Flip the board, undo moves, resign, and export PGN.
+- View completed games later from saved history.
+
+### Engine Matches
+
+- Run automated AI-vs-AI matches between configured engines.
+- Alternate colors across games.
+- Watch the current board and live engine info while the match runs.
+- Save each completed match game into history for later replay or analysis.
+
+### Game Analysis
+
+- Open a saved game from history.
+- Step to any ply in the game.
+- Select an engine and analyze the currently displayed position.
+- See the engine evaluation, depth, principal variation, and best move.
+
+### Game History
+
+- History is stored on disk as PGN files, not in browser storage.
+- Replay games directly on the board.
+- Filter by time window or custom date/time range.
+- Download PGN from any saved entry.
+
+### Engine Manager
+
+- Add, update, and remove local UCI engines.
+- Validate engine paths before saving.
+- Support engines that require a weights file.
+- Support fixed-node configurations for weights-based engines.
+
+## Storage
+
+Mimu Chess stores configuration and saved game history in the local app config directory.
+
+Typical locations:
+
+- Windows: `%APPDATA%\Mimu Chess`
+- macOS: `~/Library/Application Support/Mimu Chess`
+- Linux: `$XDG_CONFIG_HOME/mimu-chess` or `~/.config/mimu-chess`
+
+Important files and folders:
+
+- `engines.json`: saved engine definitions
+- `settings.json`: desktop settings such as theme/onboarding state
+- `game-history/`: saved PGN history
 
 ## Stack
 
-- `client`: React 19, Vite, TypeScript, Material UI, Socket.IO client
+- `client`: React 19, Vite, TypeScript, Material UI
 - `server`: Bun, Express, Socket.IO, `chess.js`
 - `desktop`: Neutralino
 
@@ -24,20 +90,23 @@ It is built for running chess engines on your own machine. You can play against 
 
 ```text
 .
-|- client/                  React app
-|- server/                  Bun + Express + Socket.IO backend
-|- dist/                    Built frontend / Neutralino assets
+|- client/                  React frontend
+|- server/                  Local backend and engine integration
+|- scripts/                 Desktop packaging helpers
+|- neutralino/              Neutralino assets/runtime files
+|- dist/                    Built frontend / desktop assets
 |- neutralino.config.json   Desktop app config
-`- package.json             Root workspace scripts
+|- CONTRIBUTING.md          Dev setup and contribution guide
+`- package.json             Workspace scripts
 ```
 
 ## Requirements
 
 - [Bun](https://bun.sh/)
-- A local UCI chess engine executable
-- Neutralino CLI if you want to use the desktop scripts
+- At least one local UCI engine executable to use the chess features
+- Neutralino CLI if you want to run desktop-mode scripts
 
-## Quick Start
+## Getting Started
 
 Install dependencies from the repo root:
 
@@ -45,96 +114,38 @@ Install dependencies from the repo root:
 bun install
 ```
 
-Start the client and server together:
+Start the app in development:
 
 ```bash
 bun run dev
 ```
 
-Useful split commands:
-
-```bash
-bun run dev:client
-bun run dev:server
-```
-
-Build both workspaces:
+Build both client and server:
 
 ```bash
 bun run build
 ```
 
-## Desktop Mode
+For desktop-specific development and packaging details, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Run the Neutralino desktop app in development:
+## Why This App Exists
 
-```bash
-bun run desktop:dev
-```
+Mimu Chess is built around a few practical ideas:
 
-Build the desktop app:
+- Local-first: engines and saved games stay on your machine.
+- Engine-focused: the UI is centered on real UCI workflows, not online play.
+- Reviewable: games should be easy to replay, export, and analyze later.
+- Desktop-friendly: engine path management and file-backed history should work cleanly outside the browser.
 
-```bash
-bun run desktop:build
-```
+## Contributing
 
-Notes:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
-- `desktop:*` scripts expect the `neu` CLI to be available
-- The frontend is built into `dist/` and Neutralino loads from there
-
-## Engine Setup
-
-1. Start the app.
-2. Open the `Engines` page.
-3. Add an engine name and the full path to the UCI executable.
-4. If the engine needs weights, enable the weights option and provide the weights file path.
-5. For engines like Maia, you can also set a fixed node limit per move.
-
-Engine definitions are persisted in [`server/engines.json`](/c:/Users/wadah/Documents/Mimu Chess/server/engines.json) after they are validated by the backend.
-
-## Configuration
-
-Server:
-
-- `PORT`: backend port, defaults to `3001`
-
-Client:
-
-- `VITE_SERVER_URL`: overrides the default backend URL
-- default backend URL is `http://127.0.0.1:3001`
-
-## Scripts
-
-Root scripts:
-
-| Command | Purpose |
-| --- | --- |
-| `bun run dev` | Start client and server together |
-| `bun run dev:client` | Start the Vite frontend |
-| `bun run dev:server` | Start the Bun backend |
-| `bun run build` | Build client and server |
-| `bun run desktop:dev` | Run the Neutralino desktop app in dev |
-| `bun run desktop:build` | Build the Neutralino desktop app |
-
-Workspace scripts:
-
-```bash
-# client
-bun run --cwd client dev
-bun run --cwd client build
-
-# server
-bun run --cwd server dev
-bun run --cwd server build
-bun run --cwd server start
-```
-
-## Notes
-
-- The backend includes Windows-specific file picker support for selecting engine binaries and weights files in desktop usage.
-- Browser development mode still works without Neutralino.
-- This project is intended for local engines, not remote engine hosting.
+- development setup
+- available scripts
+- project structure
+- contribution workflow
+- project direction and constraints
 
 ## License
 

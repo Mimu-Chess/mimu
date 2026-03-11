@@ -332,7 +332,13 @@ export default function PlayVsAI() {
 
     const renderSetupCard = () => (
         <Fade in>
-            <Card data-tour="play-setup-card" sx={{ maxWidth: 400, bgcolor: 'background.paper' }}>
+            <Card
+                data-tour="play-setup-card"
+                sx={{
+                    width: 'min(100%, 533px)',
+                    bgcolor: 'background.paper',
+                }}
+            >
                 <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <GameIcon sx={{ color: 'primary.main', fontSize: 20 }} />
@@ -383,7 +389,11 @@ export default function PlayVsAI() {
 
     const renderCurrentPanel = () => {
         if (!isPlaying && !gameState) {
-            return renderSetupCard();
+            return (
+                <Box sx={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {renderSetupCard()}
+                </Box>
+            );
         }
 
         return (

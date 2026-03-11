@@ -68,6 +68,8 @@ interface GameHistoryPanelProps {
     onDownloadPGN?: (entry: GameHistoryEntry) => void;
     emptyMessage?: string;
     onClearHistory?: () => void;
+    headerActions?: React.ReactNode;
+    auxiliaryContent?: React.ReactNode;
 }
 
 function resultLabel(result: string): string {
@@ -515,6 +517,8 @@ export default function GameHistoryPanel({
     onDownloadPGN,
     emptyMessage = 'No completed games yet.',
     onClearHistory,
+    headerActions,
+    auxiliaryContent,
 }: GameHistoryPanelProps) {
     const [timeFilter, setTimeFilter] = useState<HistoryTimeFilter>('all');
     const [customStart, setCustomStart] = useState('');
@@ -551,9 +555,12 @@ export default function GameHistoryPanel({
         return (
             <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
                 <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                        Game History
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
+                            Game History
+                        </Typography>
+                        {headerActions}
+                    </Box>
                     {onClearHistory && (
                         <Tooltip title="Clear history">
                             <IconButton size="small" onClick={onClearHistory}>
@@ -562,6 +569,11 @@ export default function GameHistoryPanel({
                         </Tooltip>
                     )}
                 </Box>
+                {auxiliaryContent && (
+                    <Box sx={{ mb: 1.5 }}>
+                        {auxiliaryContent}
+                    </Box>
+                )}
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                     {emptyMessage}
                 </Typography>
@@ -581,6 +593,7 @@ export default function GameHistoryPanel({
                     </Typography>
                 </Box>
                 <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                    {headerActions}
                     <Box ref={timeFilterAnchorRef}>
                     <FormControl size="small" sx={{ minWidth: 132 }}>
                         <InputLabel>Time</InputLabel>
@@ -647,6 +660,14 @@ export default function GameHistoryPanel({
                 }}
             />
             <Divider />
+            {auxiliaryContent && (
+                <>
+                    <Box sx={{ px: 2, py: 1.5 }}>
+                        {auxiliaryContent}
+                    </Box>
+                    <Divider />
+                </>
+            )}
             {filteredEntries.length === 0 ? (
                 <Box sx={{ p: 2.5 }}>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>

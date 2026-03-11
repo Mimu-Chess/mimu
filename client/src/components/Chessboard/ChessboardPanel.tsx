@@ -34,9 +34,14 @@ interface ChessboardPanelProps {
         from: string;
         to: string;
     } | null;
+    arrows?: Array<{
+        from: string;
+        to: string;
+        color?: string;
+    }>;
     boardTheme?: BoardTheme;
 }
-export default function ChessboardPanel({ fen, onMove, orientation = 'white', interactive = true, lastMove = null, boardTheme = DEFAULT_BOARD_THEME, }: ChessboardPanelProps) {
+export default function ChessboardPanel({ fen, onMove, orientation = 'white', interactive = true, lastMove = null, arrows = [], boardTheme = DEFAULT_BOARD_THEME, }: ChessboardPanelProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
@@ -276,6 +281,11 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
         lastMove,
         selectedSquare,
     ]);
+    const boardArrows = useMemo(() => arrows.map((arrow) => ({
+        startSquare: arrow.from,
+        endSquare: arrow.to,
+        color: arrow.color || 'rgba(56, 189, 248, 0.88)',
+    })), [arrows]);
     const legalMoveSet = useMemo(() => new Set(legalMoves), [legalMoves]);
     const squareRenderer = useCallback(({ piece, square, children }: {
         piece: any;
@@ -366,6 +376,8 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
             draggingPieceGhostStyle: { opacity: '0.45' },
             allowDragging: canInteract,
             dragActivationDistance: 3,
+            arrows: boardArrows,
+            allowDrawingArrows: false,
         }}/>
         </Box>);
 }

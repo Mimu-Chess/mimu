@@ -12,6 +12,7 @@ import { GameManager } from './game/GameManager.js';
 import { MatchRunner } from './game/MatchRunner.js';
 import { generatePGN } from './utils/pgn.js';
 import { HistoryStore } from './history/HistoryStore.js';
+import { AnalysisManager } from './analysis/AnalysisManager.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -169,6 +170,24 @@ app.get('/api/files/pick', async (req, res) => {
         return res.status(500).json({ error: (err as Error).message });
     }
 });
+app.get('/api/files/read', (req, res) => {
+    try {
+        const rawPath = String(req.query.path || '');
+        if (!rawPath) {
+            return res.status(400).json({ error: 'Path is required' });
+        }
+        const resolved = path.resolve(rawPath);
+        const stat = fs.statSync(resolved);
+        if (!stat.isFile()) {
+            return res.status(400).json({ error: 'Not a file' });
+        }
+        const content = fs.readFileSync(resolved, 'utf8');
+        return res.json({ path: resolved, content });
+    }
+    catch (err) {
+        return res.status(500).json({ error: (err as Error).message });
+    }
+});
 const httpServer = createServer(app);
 const isAllowedOrigin = (origin?: string) => {
     if (!origin)
@@ -193,6 +212,7 @@ const settingsStore = new SettingsStore();
 const historyStore = new HistoryStore();
 const games = new Map<string, GameManager>();
 const matches = new Map<string, MatchRunner>();
+const analyses = new Map<string, AnalysisManager>();
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
     socket.on('settings:get', (callback) => {
@@ -235,6 +255,47 @@ io.on('connection', (socket) => {
         catch (err) {
             callback?.({ success: false, error: (err as Error).message });
         }
+    });
+    socket.on('analysis:start', async (data: {
+        engineName: string;
+        positions: Array<{
+            plyIndex: number;
+            fen: string;
+        }>;
+        movetime?: number;
+    }, callback) => {
+        try {
+            let analysis = analyses.get(socket.id);
+            if (!analysis) {
+                analysis = new AnalysisManager(engineManager);
+                analysis.on('info', (info) => {
+                    socket.emit('analysis:info', info);
+                });
+                analysis.on('progress', (result) => {
+                    socket.emit('analysis:progress', result);
+                });
+                analysis.on('complete', (result) => {
+                    socket.emit('analysis:complete', result);
+                });
+                analysis.on('error', (error) => {
+                    socket.emit('analysis:error', { error: (error as Error).message });
+                });
+                analyses.set(socket.id, analysis);
+            }
+
+            callback?.({ success: true });
+            void analysis.analyze(data);
+        }
+        catch (err) {
+            callback?.({ success: false, error: (err as Error).message });
+        }
+    });
+    socket.on('analysis:stop', (callback) => {
+        const analysis = analyses.get(socket.id);
+        if (analysis) {
+            analysis.stop();
+        }
+        callback?.({ success: true });
     });
     socket.on('engine:add', async (data: {
         name: string;
@@ -472,6 +533,11 @@ io.on('connection', (socket) => {
         if (matchRunner) {
             matchRunner.stopMatch();
             matches.delete(socket.id);
+        }
+        const analysis = analyses.get(socket.id);
+        if (analysis) {
+            analysis.dispose();
+            analyses.delete(socket.id);
         }
     });
 });

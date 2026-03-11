@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Typography, useMediaQuery, useTheme, Divider, Toolbar, AppBar, Tooltip, Menu, MenuItem, } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Menu as MenuIcon, SportsEsports as PlayIcon, SmartToy as MatchIcon, Memory as EngineIcon, ChevronLeft as ChevronLeftIcon, Palette as PaletteIcon, Check as CheckIcon, } from '@mui/icons-material';
+import { Menu as MenuIcon, SportsEsports as PlayIcon, SmartToy as MatchIcon, ManageSearch as AnalysisIcon, Memory as EngineIcon, ChevronLeft as ChevronLeftIcon, Palette as PaletteIcon, Check as CheckIcon, } from '@mui/icons-material';
 import { useAppTheme } from '../../context/ThemeContext';
 const DRAWER_WIDTH = 214;
 interface AppShellProps {
@@ -12,6 +12,7 @@ interface AppShellProps {
 const navItems = [
     { id: 'play', label: 'Play vs AI', icon: <PlayIcon sx={{ fontSize: 18 }}/> },
     { id: 'match', label: 'Engine Matches', icon: <MatchIcon sx={{ fontSize: 18 }}/> },
+    { id: 'analysis', label: 'Game Analysis', icon: <AnalysisIcon sx={{ fontSize: 18 }}/> },
     { id: 'engines', label: 'Engines', icon: <EngineIcon sx={{ fontSize: 18 }}/> },
 ];
 export default function AppShell({ activeView, onViewChange, children }: AppShellProps) {

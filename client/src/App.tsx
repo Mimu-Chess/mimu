@@ -4,6 +4,7 @@ import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeC
 import AppShell from './components/Layout/AppShell';
 import PlayVsAI from './components/GameSetup/PlayVsAI';
 import AIvsAI from './components/GameSetup/AIvsAI';
+import GameAnalysisPanel from './components/Analysis/GameAnalysisPanel';
 import EngineManagerPanel from './components/EngineManager/EngineManagerPanel';
 import { DesktopSplash } from './components/DesktopSplash/DesktopSplash';
 import { FirstRunTour } from './components/Onboarding/FirstRunTour';
@@ -311,6 +312,8 @@ function AppContent() {
                 return <PlayVsAI />;
             case 'match':
                 return <AIvsAI />;
+            case 'analysis':
+                return <GameAnalysisPanel />;
             case 'engines':
                 return <EngineManagerPanel />;
             default:
