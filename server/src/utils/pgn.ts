@@ -7,7 +7,13 @@ export interface PGNOptions {
     event?: string;
     site?: string;
     round?: string;
+    headers?: Record<string, string>;
 }
+
+function escapePgnHeaderValue(value: string): string {
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export function generatePGN(options: PGNOptions): string {
     const date = options.date || new Date();
     const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
@@ -19,6 +25,9 @@ export function generatePGN(options: PGNOptions): string {
     pgn += `[White "${options.white}"]\n`;
     pgn += `[Black "${options.black}"]\n`;
     pgn += `[Result "${options.result}"]\n`;
+    for (const [key, value] of Object.entries(options.headers || {})) {
+        pgn += `[${key} "${escapePgnHeaderValue(value)}"]\n`;
+    }
     pgn += '\n';
     const moves = options.moves;
     let moveText = '';

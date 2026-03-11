@@ -11,6 +11,7 @@ import { SettingsStore } from './config/SettingsStore.js';
 import { GameManager } from './game/GameManager.js';
 import { MatchRunner } from './game/MatchRunner.js';
 import { generatePGN } from './utils/pgn.js';
+import { HistoryStore } from './history/HistoryStore.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -189,6 +190,7 @@ const io = new Server(httpServer, {
 });
 const engineManager = new EngineManager();
 const settingsStore = new SettingsStore();
+const historyStore = new HistoryStore();
 const games = new Map<string, GameManager>();
 const matches = new Map<string, MatchRunner>();
 io.on('connection', (socket) => {
@@ -211,6 +213,28 @@ io.on('connection', (socket) => {
     });
     socket.on('engine:list', (callback) => {
         callback(engineManager.getEngines());
+    });
+    socket.on('history:list', (data: {
+        mode?: 'play' | 'match';
+    } | undefined, callback) => {
+        try {
+            callback({ success: true, entries: historyStore.list(data?.mode) });
+        }
+        catch (err) {
+            callback({ success: false, error: (err as Error).message, entries: [] });
+        }
+    });
+    socket.on('history:clear', (data: {
+        mode?: 'play' | 'match';
+    } | undefined, callback) => {
+        try {
+            historyStore.clear(data?.mode);
+            socket.emit('history:cleared', { mode: data?.mode || null });
+            callback?.({ success: true });
+        }
+        catch (err) {
+            callback?.({ success: false, error: (err as Error).message });
+        }
     });
     socket.on('engine:add', async (data: {
         name: string;
@@ -270,13 +294,34 @@ io.on('connection', (socket) => {
                 socket.emit('game:over', state);
                 const config = gameManager.getConfig();
                 if (config) {
+                    const createdAt = new Date();
+                    const white = config.humanColor === 'white' ? 'Human' : (config.blackEngine || config.whiteEngine || 'Engine');
+                    const black = config.humanColor === 'black' ? 'Human' : (config.blackEngine || config.whiteEngine || 'Engine');
                     const pgn = generatePGN({
-                        white: config.humanColor === 'white' ? 'Human' : (config.blackEngine || config.whiteEngine || 'Engine'),
-                        black: config.humanColor === 'black' ? 'Human' : (config.blackEngine || config.whiteEngine || 'Engine'),
+                        white,
+                        black,
                         result: state.result || '*',
                         moves: state.movesSan,
-                        date: new Date(),
+                        date: createdAt,
+                        headers: {
+                            MimuMode: 'play',
+                            MimuCreatedAt: createdAt.toISOString(),
+                            MimuTitle: `${white} vs ${black}`,
+                            MimuSubtitle: `${config.blackEngine || config.whiteEngine || 'Engine'}`,
+                        },
                     });
+                    const entry = historyStore.saveGame({
+                        title: `${white} vs ${black}`,
+                        subtitle: `${config.blackEngine || config.whiteEngine || 'Engine'}`,
+                        result: state.result || '*',
+                        moves: state.movesSan,
+                        pgn,
+                        white,
+                        black,
+                        mode: 'play',
+                        createdAt,
+                    });
+                    socket.emit('history:saved', entry);
                     socket.emit('game:pgn', pgn);
                 }
             });
@@ -352,6 +397,34 @@ io.on('connection', (socket) => {
                 socket.emit('match:engine-info', info);
             });
             matchRunner.on('match-update', (update) => {
+                const createdAt = new Date();
+                const subtitle = `${update.result.white} vs ${update.result.black}`;
+                const pgn = generatePGN({
+                    white: update.result.white,
+                    black: update.result.black,
+                    result: update.result.result,
+                    moves: update.result.moves,
+                    date: createdAt,
+                    event: `Match Game ${update.result.gameNumber}`,
+                    headers: {
+                        MimuMode: 'match',
+                        MimuCreatedAt: createdAt.toISOString(),
+                        MimuTitle: `Game ${update.result.gameNumber}`,
+                        MimuSubtitle: subtitle,
+                    },
+                });
+                const entry = historyStore.saveGame({
+                    title: `Game ${update.result.gameNumber}`,
+                    subtitle,
+                    result: update.result.result,
+                    moves: update.result.moves,
+                    pgn,
+                    white: update.result.white,
+                    black: update.result.black,
+                    mode: 'match',
+                    createdAt,
+                });
+                socket.emit('history:saved', entry);
                 socket.emit('match:update', update);
             });
             matchRunner.on('match-end', (result) => {

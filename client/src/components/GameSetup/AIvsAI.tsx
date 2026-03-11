@@ -8,7 +8,6 @@ import MatchResults from '../MatchResults/MatchResults';
 import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
-import { MATCH_HISTORY_STORAGE_KEY, readGameHistory, writeGameHistory } from '../../lib/gameHistoryStorage';
 
 interface EngineConfig {
     name: string;
@@ -44,19 +43,6 @@ interface MatchResult {
 
 type SideTab = 'current' | 'history';
 
-function toHistoryEntry(result: MatchResult): GameHistoryEntry {
-    return {
-        id: `match-${Date.now()}-${result.gameNumber}`,
-        title: `Game ${result.gameNumber}`,
-        subtitle: `${result.white} vs ${result.black}`,
-        result: result.result,
-        moves: [...result.moves],
-        pgn: result.pgn,
-        white: result.white,
-        black: result.black,
-    };
-}
-
 export default function AIvsAI() {
     const { emit, on, off } = useSocket();
     const { appTheme, themes, setThemeById } = useAppTheme();
@@ -76,7 +62,7 @@ export default function AIvsAI() {
     const [currentGame, setCurrentGame] = useState(0);
     const [score, setScore] = useState<MatchScore | null>(null);
     const [results, setResults] = useState<MatchResult[]>([]);
-    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>(() => readGameHistory(MATCH_HISTORY_STORAGE_KEY));
+    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
     const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
     const [selectedHistoryPlyIndex, setSelectedHistoryPlyIndex] = useState(0);
     const [engineInfo, setEngineInfo] = useState<any>(null);
@@ -115,6 +101,44 @@ export default function AIvsAI() {
     }, [emit, on]);
 
     useEffect(() => {
+        emit('history:list', { mode: 'match' }, (response: { success: boolean; entries: GameHistoryEntry[] }) => {
+            if (response?.success) {
+                setHistoryEntries(response.entries || []);
+            }
+        });
+    }, [emit]);
+
+    useEffect(() => {
+        const handleHistorySaved = (entry: GameHistoryEntry) => {
+            if (entry.mode !== 'match') {
+                return;
+            }
+
+            setHistoryEntries((prev) => [entry, ...prev.filter((item) => item.id !== entry.id)]);
+            setSelectedHistoryId(entry.id);
+            setSelectedHistoryPlyIndex(entry.moves.length);
+        };
+
+        const handleHistoryCleared = (payload: { mode?: 'play' | 'match' | null }) => {
+            if (payload?.mode && payload.mode !== 'match') {
+                return;
+            }
+
+            setHistoryEntries([]);
+            setSelectedHistoryId(null);
+            setSelectedHistoryPlyIndex(0);
+        };
+
+        on('history:saved', handleHistorySaved);
+        on('history:cleared', handleHistoryCleared);
+
+        return () => {
+            off('history:saved', handleHistorySaved);
+            off('history:cleared', handleHistoryCleared);
+        };
+    }, [on, off]);
+
+    useEffect(() => {
         const gameStartHandler = (info: { gameNum: number; white: string; black: string }) => {
             setCurrentGame(info.gameNum);
             setCurrentFen('start');
@@ -139,11 +163,6 @@ export default function AIvsAI() {
         const matchUpdateHandler = (update: { result: MatchResult; score: MatchScore }) => {
             setResults((prev) => [...prev, update.result]);
             setScore(update.score);
-
-            const historyEntry = toHistoryEntry(update.result);
-            setHistoryEntries((prev) => [historyEntry, ...prev]);
-            setSelectedHistoryId(historyEntry.id);
-            setSelectedHistoryPlyIndex(historyEntry.moves.length);
         };
 
         const matchEndHandler = (data: { results: MatchResult[]; score: MatchScore }) => {
@@ -174,15 +193,22 @@ export default function AIvsAI() {
         };
     }, [on, off]);
 
-    useEffect(() => {
-        writeGameHistory(MATCH_HISTORY_STORAGE_KEY, historyEntries);
-    }, [historyEntries]);
-
     const handleClearHistory = useCallback(() => {
-        setHistoryEntries([]);
-        setSelectedHistoryId(null);
-        setSelectedHistoryPlyIndex(0);
-    }, []);
+        emit('history:clear', { mode: 'match' }, () => { });
+    }, [emit]);
+
+    useEffect(() => {
+        if (historyEntries.length === 0) {
+            setSelectedHistoryId(null);
+            setSelectedHistoryPlyIndex(0);
+            return;
+        }
+
+        if (!selectedHistoryId || !historyEntries.some((entry) => entry.id === selectedHistoryId)) {
+            setSelectedHistoryId(historyEntries[0].id);
+            setSelectedHistoryPlyIndex(historyEntries[0].moves.length);
+        }
+    }, [historyEntries, selectedHistoryId]);
 
     useEffect(() => () => {
         if (startAckTimeoutRef.current) {

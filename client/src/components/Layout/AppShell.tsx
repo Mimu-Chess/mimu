@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Typography, useMediaQuery, useTheme, Divider, Toolbar, AppBar, Tooltip, Menu, MenuItem, } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Menu as MenuIcon, SportsEsports as PlayIcon, SmartToy as MatchIcon, Settings as EngineIcon, ChevronLeft as ChevronLeftIcon, Palette as PaletteIcon, Check as CheckIcon, } from '@mui/icons-material';
+import { Menu as MenuIcon, SportsEsports as PlayIcon, SmartToy as MatchIcon, Memory as EngineIcon, ChevronLeft as ChevronLeftIcon, Palette as PaletteIcon, Check as CheckIcon, } from '@mui/icons-material';
 import { useAppTheme } from '../../context/ThemeContext';
 const DRAWER_WIDTH = 214;
 interface AppShellProps {

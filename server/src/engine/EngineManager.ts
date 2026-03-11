@@ -1,24 +1,11 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { UCIEngine, EngineConfig } from './UCIEngine.js';
+import { getConfigDirectory } from '../config/appPaths.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const LEGACY_ENGINES_FILE = path.join(__dirname, '..', '..', 'engines.json');
-
-function getConfigDirectory(): string {
-    const appFolderName = 'Mimu Chess';
-
-    switch (process.platform) {
-        case 'win32':
-            return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appFolderName);
-        case 'darwin':
-            return path.join(os.homedir(), 'Library', 'Application Support', appFolderName);
-        default:
-            return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'mimu-chess');
-    }
-}
 
 const ENGINES_DIR = getConfigDirectory();
 const ENGINES_FILE = path.join(ENGINES_DIR, 'engines.json');

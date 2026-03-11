@@ -1,6 +1,6 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
+import { getConfigDirectory } from './appPaths.js';
 
 export interface DesktopSettings {
     themeId?: string;
@@ -11,19 +11,6 @@ export const DEFAULT_DESKTOP_SETTINGS: Required<DesktopSettings> = {
     themeId: 'cappuccino',
     onboardingCompleted: false,
 };
-
-function getConfigDirectory(): string {
-    const appFolderName = 'Mimu Chess';
-
-    switch (process.platform) {
-        case 'win32':
-            return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appFolderName);
-        case 'darwin':
-            return path.join(os.homedir(), 'Library', 'Application Support', appFolderName);
-        default:
-            return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'mimu-chess');
-    }
-}
 
 function sanitizeSettings(value: unknown): DesktopSettings {
     if (!value || typeof value !== 'object') {

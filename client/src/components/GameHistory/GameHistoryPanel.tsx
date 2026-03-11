@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
-import { Box, Button, Chip, Divider, IconButton, List, ListItemButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Box, Button, Chip, Divider, Fade, FormControl, IconButton, InputLabel, List, ListItemButton, MenuItem, Paper, Popover, Select, Stack, Tooltip, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Download as DownloadIcon, FastForward as EndIcon, ChevronLeft as PrevIcon, ChevronRight as NextIcon, FirstPage as StartIcon, DeleteSweep as ClearHistoryIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, FastForward as EndIcon, ChevronLeft as PrevIcon, ChevronRight as NextIcon, FirstPage as StartIcon, DeleteSweep as ClearHistoryIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import { Chess } from 'chess.js';
 import MoveList from '../MoveList/MoveList';
+import { useAppTheme } from '../../context/ThemeContext';
+
+type HistoryTimeFilter = 'all' | 'today' | '7d' | '30d' | '90d' | 'custom';
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => index);
+const MINUTE_OPTIONS = [0, 15, 30, 45];
 
 export interface GameHistoryEntry {
     id: string;
@@ -14,6 +20,9 @@ export interface GameHistoryEntry {
     pgn?: string;
     white: string;
     black: string;
+    createdAt: string;
+    mode?: 'play' | 'match';
+    fileName?: string;
 }
 
 export interface PlaybackSnapshot {
@@ -68,6 +77,435 @@ function resultLabel(result: string): string {
     return result;
 }
 
+function pad2(value: number): string {
+    return String(value).padStart(2, '0');
+}
+
+function parseLocalDateTime(value: string): Date | null {
+    if (!value) {
+        return null;
+    }
+
+    const [datePart, timePart = '00:00'] = value.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
+
+    if ([year, month, day, hours, minutes].some((part) => Number.isNaN(part))) {
+        return null;
+    }
+
+    return new Date(year, month - 1, day, hours, minutes, 0, 0);
+}
+
+function toLocalDateTimeValue(date: Date): string {
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+function formatDateTime(date: Date): string {
+    return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+}
+
+function formatRangeSummary(startValue: string, endValue: string): string {
+    const start = parseLocalDateTime(startValue);
+    const end = parseLocalDateTime(endValue);
+
+    if (!start && !end) {
+        return 'Pick dates';
+    }
+    if (start && end) {
+        return `${formatDateTime(start)} - ${formatDateTime(end)}`;
+    }
+    if (start) {
+        return `From ${formatDateTime(start)}`;
+    }
+    return `Until ${formatDateTime(end!)}`;
+}
+
+function monthStart(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date: Date, delta: number): Date {
+    return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}
+
+function sameDay(left: Date | null, right: Date | null): boolean {
+    return !!left && !!right
+        && left.getFullYear() === right.getFullYear()
+        && left.getMonth() === right.getMonth()
+        && left.getDate() === right.getDate();
+}
+
+function isBetweenDays(day: Date, start: Date | null, end: Date | null): boolean {
+    if (!start || !end) {
+        return false;
+    }
+
+    const dayValue = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+    const startValue = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+    const endValue = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+
+    return dayValue > Math.min(startValue, endValue) && dayValue < Math.max(startValue, endValue);
+}
+
+function withTime(date: Date, source: Date | null, fallbackHours: number, fallbackMinutes: number): Date {
+    return new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+        source?.getHours() ?? fallbackHours,
+        source?.getMinutes() ?? fallbackMinutes,
+        0,
+        0,
+    );
+}
+
+function endOfDay(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 0, 0);
+}
+
+function buildCalendarDays(viewDate: Date): Date[] {
+    const first = monthStart(viewDate);
+    const start = new Date(first);
+    start.setDate(first.getDate() - first.getDay());
+
+    return Array.from({ length: 42 }, (_, index) => {
+        const day = new Date(start);
+        day.setDate(start.getDate() + index);
+        return day;
+    });
+}
+
+function CustomRangePicker({
+    open,
+    anchorEl,
+    startValue,
+    endValue,
+    onClose,
+    onApply,
+    onReset,
+}: {
+    open: boolean;
+    anchorEl: HTMLElement | null;
+    startValue: string;
+    endValue: string;
+    onClose: () => void;
+    onApply: (nextStart: string, nextEnd: string) => void;
+    onReset: () => void;
+}) {
+    const { appTheme } = useAppTheme();
+    const [viewMonth, setViewMonth] = useState<Date>(() => monthStart(parseLocalDateTime(startValue) || new Date()));
+    const [draftStart, setDraftStart] = useState<Date | null>(() => parseLocalDateTime(startValue));
+    const [draftEnd, setDraftEnd] = useState<Date | null>(() => parseLocalDateTime(endValue));
+
+    const calendarDays = useMemo(() => buildCalendarDays(viewMonth), [viewMonth]);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        setDraftStart(parseLocalDateTime(startValue));
+        setDraftEnd(parseLocalDateTime(endValue));
+        setViewMonth(monthStart(parseLocalDateTime(startValue) || new Date()));
+    }, [open, startValue, endValue]);
+
+    const handleDayClick = (day: Date) => {
+        if (!draftStart || draftEnd) {
+            setDraftStart(withTime(day, draftStart, 0, 0));
+            setDraftEnd(null);
+            return;
+        }
+
+        const candidateStart = new Date(draftStart.getFullYear(), draftStart.getMonth(), draftStart.getDate()).getTime();
+        const candidateDay = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+
+        if (candidateDay < candidateStart) {
+            setDraftStart(withTime(day, draftStart, 0, 0));
+            setDraftEnd(null);
+            return;
+        }
+
+        setDraftEnd(withTime(day, draftEnd, 23, 59));
+    };
+
+    const updateDraftTime = (target: 'start' | 'end', type: 'hours' | 'minutes', value: number) => {
+        const source = target === 'start' ? draftStart : (draftEnd || (draftStart ? endOfDay(draftStart) : null));
+        if (!source) {
+            return;
+        }
+
+        const next = new Date(source);
+        if (type === 'hours') {
+            next.setHours(value);
+        }
+        else {
+            next.setMinutes(value);
+        }
+
+        if (target === 'start') {
+            setDraftStart(next);
+        }
+        else {
+            setDraftEnd(next);
+        }
+    };
+
+    const applyDraft = () => {
+        if (!draftStart) {
+            onApply('', '');
+            return;
+        }
+
+        const normalizedEnd = draftEnd || endOfDay(draftStart);
+        onApply(toLocalDateTimeValue(draftStart), toLocalDateTimeValue(normalizedEnd));
+    };
+
+    return (
+        <Popover
+            open={open}
+            anchorEl={anchorEl}
+            onClose={onClose}
+            TransitionComponent={Fade}
+            transitionDuration={160}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            slotProps={{
+                paper: {
+                    sx: {
+                        mt: 1,
+                        p: 2,
+                        width: 360,
+                        borderRadius: 2.5,
+                        backgroundColor: alpha(appTheme.bgPaper, 0.96),
+                        borderColor: alpha(appTheme.primary, 0.22),
+                        backdropFilter: 'blur(12px)',
+                    },
+                },
+            }}
+        >
+            <Stack spacing={1.5}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                            Custom Time Range
+                        </Typography>
+                        <Stack direction="row" spacing={0.5}>
+                            <IconButton size="small" onClick={() => setViewMonth((current) => addMonths(current, -1))}>
+                                <PrevIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => setViewMonth((current) => addMonths(current, 1))}>
+                                <NextIcon fontSize="small" />
+                            </IconButton>
+                        </Stack>
+                    </Box>
+
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {viewMonth.toLocaleString([], { month: 'long', year: 'numeric' })}
+                    </Typography>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 0.5 }}>
+                        {WEEKDAY_LABELS.map((label) => (
+                            <Typography key={label} variant="caption" sx={{ textAlign: 'center', color: 'text.secondary', py: 0.5 }}>
+                                {label}
+                            </Typography>
+                        ))}
+                        {calendarDays.map((day) => {
+                            const inCurrentMonth = day.getMonth() === viewMonth.getMonth();
+                            const isStart = sameDay(day, draftStart);
+                            const isEnd = sameDay(day, draftEnd);
+                            const inRange = isBetweenDays(day, draftStart, draftEnd);
+
+                            return (
+                                <Box
+                                    key={day.toISOString()}
+                                    component="button"
+                                    type="button"
+                                    onClick={() => handleDayClick(day)}
+                                    sx={{
+                                        height: 38,
+                                        borderRadius: 1.5,
+                                        border: '1px solid',
+                                        borderColor: isStart || isEnd ? 'transparent' : alpha(appTheme.primary, inCurrentMonth ? 0.12 : 0.06),
+                                        backgroundColor: isStart || isEnd
+                                            ? appTheme.primary
+                                            : inRange
+                                                ? alpha(appTheme.primary, 0.18)
+                                                : alpha(appTheme.bgDefault, inCurrentMonth ? 0.18 : 0.08),
+                                        color: isStart || isEnd
+                                            ? '#ffffff'
+                                            : inCurrentMonth
+                                                ? 'text.primary'
+                                                : 'text.secondary',
+                                        cursor: 'pointer',
+                                        font: 'inherit',
+                                        transition: 'background-color 0.16s ease, border-color 0.16s ease',
+                                        '&:hover': {
+                                            backgroundColor: isStart || isEnd
+                                                ? alpha(appTheme.primary, 0.92)
+                                                : alpha(appTheme.primary, 0.24),
+                                        },
+                                    }}
+                                >
+                                    {day.getDate()}
+                                </Box>
+                            );
+                        })}
+                    </Box>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.25 }}>
+                        <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: alpha(appTheme.bgDefault, 0.28), border: '1px solid', borderColor: alpha(appTheme.primary, 0.12) }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                                From
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+                                {draftStart ? formatDateTime(draftStart) : 'Not set'}
+                            </Typography>
+                            <Stack direction="row" spacing={1}>
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel>Hour</InputLabel>
+                                    <Select
+                                        value={draftStart ? String(draftStart.getHours()) : ''}
+                                        label="Hour"
+                                        onChange={(event) => updateDraftTime('start', 'hours', Number(event.target.value))}
+                                        disabled={!draftStart}
+                                    >
+                                        {HOUR_OPTIONS.map((hour) => (
+                                            <MenuItem key={hour} value={String(hour)}>
+                                                {pad2(hour)}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel>Min</InputLabel>
+                                    <Select
+                                        value={draftStart ? String(draftStart.getMinutes()) : ''}
+                                        label="Min"
+                                        onChange={(event) => updateDraftTime('start', 'minutes', Number(event.target.value))}
+                                        disabled={!draftStart}
+                                    >
+                                        {MINUTE_OPTIONS.map((minute) => (
+                                            <MenuItem key={minute} value={String(minute)}>
+                                                {pad2(minute)}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Box>
+
+                        <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: alpha(appTheme.bgDefault, 0.28), border: '1px solid', borderColor: alpha(appTheme.secondary, 0.14) }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
+                                To
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
+                                {draftEnd ? formatDateTime(draftEnd) : (draftStart ? formatDateTime(endOfDay(draftStart)) : 'Not set')}
+                            </Typography>
+                            <Stack direction="row" spacing={1}>
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel>Hour</InputLabel>
+                                    <Select
+                                        value={draftEnd ? String(draftEnd.getHours()) : (draftStart ? '23' : '')}
+                                        label="Hour"
+                                        onChange={(event) => updateDraftTime('end', 'hours', Number(event.target.value))}
+                                        disabled={!draftStart}
+                                    >
+                                        {HOUR_OPTIONS.map((hour) => (
+                                            <MenuItem key={hour} value={String(hour)}>
+                                                {pad2(hour)}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl size="small" fullWidth>
+                                    <InputLabel>Min</InputLabel>
+                                    <Select
+                                        value={draftEnd ? String(draftEnd.getMinutes()) : (draftStart ? '59' : '')}
+                                        label="Min"
+                                        onChange={(event) => updateDraftTime('end', 'minutes', Number(event.target.value))}
+                                        disabled={!draftStart}
+                                    >
+                                        {[...MINUTE_OPTIONS, 59].map((minute) => (
+                                            <MenuItem key={minute} value={String(minute)}>
+                                                {pad2(minute)}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
+                        </Box>
+                    </Box>
+
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Click one date to set the start, then another to set the end.
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                        <Button
+                            size="small"
+                            color="inherit"
+                            onClick={() => {
+                                setDraftStart(null);
+                                setDraftEnd(null);
+                                onReset();
+                            }}
+                        >
+                            Reset
+                        </Button>
+                        <Stack direction="row" spacing={1}>
+                            <Button size="small" color="inherit" onClick={onClose}>
+                                Cancel
+                            </Button>
+                            <Button size="small" variant="contained" onClick={applyDraft}>
+                                Apply
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Stack>
+        </Popover>
+    );
+}
+
+function matchesTimeFilter(
+    entry: GameHistoryEntry,
+    filter: HistoryTimeFilter,
+    customStart: string,
+    customEnd: string,
+): boolean {
+    if (filter === 'all') {
+        return true;
+    }
+
+    const createdAt = Date.parse(entry.createdAt);
+    if (Number.isNaN(createdAt)) {
+        return true;
+    }
+
+    if (filter === 'custom') {
+        const start = customStart ? Date.parse(customStart) : Number.NEGATIVE_INFINITY;
+        const end = customEnd ? Date.parse(customEnd) : Number.POSITIVE_INFINITY;
+        const safeStart = Number.isNaN(start) ? Number.NEGATIVE_INFINITY : start;
+        const safeEnd = Number.isNaN(end) ? Number.POSITIVE_INFINITY : end;
+        return createdAt >= safeStart && createdAt <= safeEnd;
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    if (filter === 'today') {
+        return createdAt >= startOfToday;
+    }
+
+    const days = filter === '7d' ? 7 : filter === '30d' ? 30 : 90;
+    return createdAt >= now.getTime() - (days * 24 * 60 * 60 * 1000);
+}
+
 export default function GameHistoryPanel({
     entries,
     selectedEntryId,
@@ -78,9 +516,28 @@ export default function GameHistoryPanel({
     emptyMessage = 'No completed games yet.',
     onClearHistory,
 }: GameHistoryPanelProps) {
+    const [timeFilter, setTimeFilter] = useState<HistoryTimeFilter>('all');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+    const [customPickerOpen, setCustomPickerOpen] = useState(false);
+    const timeFilterAnchorRef = useRef<HTMLDivElement | null>(null);
+    const filteredEntries = useMemo(
+        () => entries.filter((entry) => matchesTimeFilter(entry, timeFilter, customStart, customEnd)),
+        [entries, timeFilter, customStart, customEnd],
+    );
+
+    useEffect(() => {
+        if (timeFilter !== 'custom') {
+            setCustomPickerOpen(false);
+            return;
+        }
+
+        setCustomPickerOpen(true);
+    }, [timeFilter]);
+
     const selectedEntry = useMemo(
-        () => entries.find((entry) => entry.id === selectedEntryId) ?? entries[0] ?? null,
-        [entries, selectedEntryId],
+        () => filteredEntries.find((entry) => entry.id === selectedEntryId) ?? filteredEntries[0] ?? null,
+        [filteredEntries, selectedEntryId],
     );
 
     const playback = useMemo(
@@ -120,20 +577,87 @@ export default function GameHistoryPanel({
                         Game History
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {entries.length} saved {entries.length === 1 ? 'game' : 'games'}
+                        {filteredEntries.length} shown of {entries.length} saved {entries.length === 1 ? 'game' : 'games'}
                     </Typography>
                 </Box>
-                {onClearHistory && (
-                    <Button size="small" color="inherit" startIcon={<ClearHistoryIcon />} onClick={onClearHistory}>
-                        Clear
-                    </Button>
-                )}
+                <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                    <Box ref={timeFilterAnchorRef}>
+                    <FormControl size="small" sx={{ minWidth: 132 }}>
+                        <InputLabel>Time</InputLabel>
+                        <Select
+                            value={timeFilter}
+                            label="Time"
+                            onChange={(event) => {
+                                const nextValue = event.target.value as HistoryTimeFilter;
+                                setTimeFilter(nextValue);
+                                setCustomPickerOpen(nextValue === 'custom');
+                            }}
+                        >
+                            <MenuItem value="all">All time</MenuItem>
+                            <MenuItem value="today">Today</MenuItem>
+                            <MenuItem value="7d">Last 7 days</MenuItem>
+                            <MenuItem value="30d">Last 30 days</MenuItem>
+                            <MenuItem value="90d">Last 90 days</MenuItem>
+                            <MenuItem value="custom">Custom range</MenuItem>
+                        </Select>
+                    </FormControl>
+                    </Box>
+                    {onClearHistory && (
+                        <Button size="small" color="inherit" startIcon={<ClearHistoryIcon />} onClick={onClearHistory}>
+                            Clear
+                        </Button>
+                    )}
+                </Stack>
             </Box>
+            {timeFilter === 'custom' && (
+                <>
+                    <Divider />
+                    <Box sx={{ px: 2, py: 1.25, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {formatRangeSummary(customStart, customEnd)}
+                        </Typography>
+                        <Tooltip title="Edit custom range">
+                            <IconButton size="small" onClick={() => setCustomPickerOpen(true)}>
+                                <CalendarIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </>
+            )}
+            <CustomRangePicker
+                open={customPickerOpen}
+                anchorEl={timeFilterAnchorRef.current}
+                startValue={customStart}
+                endValue={customEnd}
+                onClose={() => {
+                    setCustomPickerOpen(false);
+                    setTimeFilter('all');
+                }}
+                onApply={(nextStart, nextEnd) => {
+                    setCustomStart(nextStart);
+                    setCustomEnd(nextEnd);
+                    setCustomPickerOpen(false);
+                    setTimeFilter(nextStart || nextEnd ? 'custom' : 'all');
+                }}
+                onReset={() => {
+                    setCustomStart('');
+                    setCustomEnd('');
+                    setCustomPickerOpen(false);
+                    setTimeFilter('all');
+                }}
+            />
             <Divider />
+            {filteredEntries.length === 0 ? (
+                <Box sx={{ p: 2.5 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                        No saved games match this time filter.
+                    </Typography>
+                </Box>
+            ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '220px minmax(0, 1fr)' }, columnGap: { xl: 2 }, minHeight: 420 }}>
                 <Box sx={{ maxHeight: { xs: 220, xl: 'none' }, overflow: 'auto' }}>
                     <List dense disablePadding>
-                        {entries.map((entry) => (
+                        {filteredEntries.map((entry) => (
                             <ListItemButton
                                 key={entry.id}
                                 selected={entry.id === selectedEntry?.id}
@@ -157,7 +681,7 @@ export default function GameHistoryPanel({
                                         {entry.subtitle}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-                                        {entry.moves.length} plies
+                                        {new Date(entry.createdAt).toLocaleString()} · {entry.moves.length} plies
                                     </Typography>
                                 </Box>
                             </ListItemButton>
@@ -173,7 +697,9 @@ export default function GameHistoryPanel({
                                         {selectedEntry.white} vs {selectedEntry.black}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {selectedEntry.subtitle}
+                                        {selectedEntry.subtitle === `${selectedEntry.white} vs ${selectedEntry.black}`
+                                            ? new Date(selectedEntry.createdAt).toLocaleString()
+                                            : selectedEntry.subtitle}
                                     </Typography>
                                 </Box>
                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -217,6 +743,7 @@ export default function GameHistoryPanel({
                     )}
                 </Box>
             </Box>
+            )}
         </Paper>
     );
 }
