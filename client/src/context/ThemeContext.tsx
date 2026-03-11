@@ -1,7 +1,10 @@
-import { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { alpha, createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
+import { initializeDesktopSettings, writeDesktopSettingsPatch } from '../lib/desktopConfig';
+
+const THEME_STORAGE_KEY = 'mimu-theme';
 export interface AppTheme {
     id: string;
     name: string;
@@ -347,8 +350,37 @@ export function ThemeProvider({ children }: {
     const [themeId, setThemeId] = useState(() => {
         if (typeof window === 'undefined')
             return 'cappuccino';
-        return window.localStorage.getItem('mimu-theme') || 'cappuccino';
+        return window.localStorage.getItem(THEME_STORAGE_KEY) || 'cappuccino';
     });
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        let cancelled = false;
+        const localThemeId = window.localStorage.getItem(THEME_STORAGE_KEY) || 'cappuccino';
+
+        const loadDesktopTheme = async () => {
+            const data = await initializeDesktopSettings({ themeId: localThemeId });
+            if (cancelled) {
+                return;
+            }
+
+            const nextThemeId = data?.themeId;
+            if (nextThemeId && APP_THEMES.some((theme) => theme.id === nextThemeId)) {
+                window.localStorage.setItem(THEME_STORAGE_KEY, nextThemeId);
+                setThemeId(nextThemeId);
+            }
+        };
+
+        void loadDesktopTheme();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const appTheme = useMemo(() => APP_THEMES.find((t) => t.id === themeId) || APP_THEMES[0], [themeId]);
     const muiTheme = useMemo(() => buildMuiTheme(appTheme), [appTheme]);
     const setThemeById = useCallback((id: string) => {
@@ -357,7 +389,8 @@ export function ThemeProvider({ children }: {
             return;
         setThemeId(id);
         if (typeof window !== 'undefined') {
-            window.localStorage.setItem('mimu-theme', id);
+            window.localStorage.setItem(THEME_STORAGE_KEY, id);
+            void writeDesktopSettingsPatch({ themeId: id });
         }
     }, []);
     const ctx = useMemo(() => ({ appTheme, setThemeById, muiTheme, themes: APP_THEMES }), [appTheme, muiTheme, setThemeById]);

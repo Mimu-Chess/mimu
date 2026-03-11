@@ -7,6 +7,7 @@ import os from 'os';
 import path from 'path';
 import { spawn } from 'node:child_process';
 import { EngineManager } from './engine/EngineManager.js';
+import { SettingsStore } from './config/SettingsStore.js';
 import { GameManager } from './game/GameManager.js';
 import { MatchRunner } from './game/MatchRunner.js';
 import { generatePGN } from './utils/pgn.js';
@@ -187,10 +188,27 @@ const io = new Server(httpServer, {
     },
 });
 const engineManager = new EngineManager();
+const settingsStore = new SettingsStore();
 const games = new Map<string, GameManager>();
 const matches = new Map<string, MatchRunner>();
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
+    socket.on('settings:get', (callback) => {
+        try {
+            callback({ success: true, settings: settingsStore.read() });
+        }
+        catch (err) {
+            callback({ success: false, error: (err as Error).message });
+        }
+    });
+    socket.on('settings:update', (patch, callback) => {
+        try {
+            callback({ success: true, settings: settingsStore.patch(patch || {}) });
+        }
+        catch (err) {
+            callback({ success: false, error: (err as Error).message });
+        }
+    });
     socket.on('engine:list', (callback) => {
         callback(engineManager.getEngines());
     });

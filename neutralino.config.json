@@ -3,7 +3,7 @@
   "applicationId": "js.neutralino.sample",
   "version": "1.0.0",
   "defaultMode": "window",
-  "port": 0,
+  "port": 32110,
   "documentRoot": "/dist/",
   "url": "/",
   "enableServer": true,
@@ -16,7 +16,9 @@
   "nativeAllowList": [
     "app.*",
     "os.*",
-    "debug.log"
+    "debug.log",
+    "storage.*",
+    "filesystem.*"
   ],
   "globalVariables": {
     "TEST1": "Hello",
@@ -40,13 +42,13 @@
       "center": true,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/dist/MIMU.png",
-      "enableInspector": true,
+      "icon": "/dist/MIMU.ico",
+      "enableInspector": false,
       "borderless": false,
       "maximize": false,
       "hidden": false,
       "resizable": true,
-      "exitProcessOnClose": false
+      "exitProcessOnClose": true
     },
     "browser": {
       "globalVariables": {
@@ -73,7 +75,7 @@
     }
   },
   "cli": {
-    "binaryName": "mima-chess",
+    "binaryName": "mimu-chess",
     "resourcesPath": "/dist/",
     "extensionsPath": "/extensions/",
     "clientLibrary": "/dist/js/neutralino.js",
