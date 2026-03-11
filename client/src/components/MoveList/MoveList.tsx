@@ -3,8 +3,10 @@ import { alpha } from '@mui/material/styles';
 interface MoveListProps {
     moves: string[];
     currentMoveIndex?: number;
+    onMoveSelect?: (moveIndex: number) => void;
+    title?: string;
 }
-export default function MoveList({ moves, currentMoveIndex }: MoveListProps) {
+export default function MoveList({ moves, currentMoveIndex, onMoveSelect, title = 'Moves' }: MoveListProps) {
     const movePairs: {
         number: number;
         white: string;
@@ -31,7 +33,7 @@ export default function MoveList({ moves, currentMoveIndex }: MoveListProps) {
             },
         }}>
             <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                Moves
+                {title}
             </Typography>
 
             {movePairs.length === 0 ? (<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
@@ -62,14 +64,14 @@ export default function MoveList({ moves, currentMoveIndex }: MoveListProps) {
                     }}>
                                     {pair.number}.
                                 </Typography>
-                                <Chip label={pair.white} size="small" variant={isCurrentWhite ? 'filled' : 'outlined'} color={isCurrentWhite ? 'primary' : 'default'} sx={{
+                                <Chip label={pair.white} size="small" variant={isCurrentWhite ? 'filled' : 'outlined'} color={isCurrentWhite ? 'primary' : 'default'} onClick={onMoveSelect ? () => onMoveSelect(whiteIdx) : undefined} clickable={!!onMoveSelect} sx={{
                         minWidth: 52,
                         fontSize: '0.8rem',
                         fontWeight: 600,
                         fontFamily: '"JetBrains Mono", monospace',
                         border: isCurrentWhite ? undefined : '1px solid transparent',
                     }}/>
-                                {pair.black && (<Chip label={pair.black} size="small" variant={isCurrentBlack ? 'filled' : 'outlined'} color={isCurrentBlack ? 'primary' : 'default'} sx={{
+                                {pair.black && (<Chip label={pair.black} size="small" variant={isCurrentBlack ? 'filled' : 'outlined'} color={isCurrentBlack ? 'primary' : 'default'} onClick={onMoveSelect ? () => onMoveSelect(blackIdx) : undefined} clickable={!!onMoveSelect} sx={{
                             minWidth: 52,
                             fontSize: '0.8rem',
                             fontWeight: 600,

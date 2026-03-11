@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Box, Typography, Card, CardContent, Button, FormControl, InputLabel, Select, MenuItem, TextField, Slider, Chip, Snackbar, Alert, Fade, Divider, Tooltip, IconButton, } from '@mui/material';
-import { PlayArrow as PlayIcon, Stop as StopIcon, SmartToy as MatchIcon, Palette as ThemeIcon, } from '@mui/icons-material';
+import { Alert, Box, Button, Card, CardContent, Chip, Divider, Fade, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, TextField, Tooltip, Typography } from '@mui/material';
+import { PlayArrow as PlayIcon, Stop as StopIcon, SmartToy as MatchIcon, Palette as ThemeIcon } from '@mui/icons-material';
 import ChessboardPanel from '../Chessboard/ChessboardPanel';
 import MoveList from '../MoveList/MoveList';
 import EngineInfo from '../EngineInfo/EngineInfo';
 import MatchResults from '../MatchResults/MatchResults';
+import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
+
 interface EngineConfig {
     name: string;
     path: string;
@@ -15,6 +17,7 @@ interface EngineConfig {
     nodes?: number;
     weightsFile?: string;
 }
+
 interface MatchScore {
     white: {
         name: string;
@@ -28,6 +31,7 @@ interface MatchScore {
     gamesPlayed: number;
     totalGames: number;
 }
+
 interface MatchResult {
     gameNumber: number;
     white: string;
@@ -36,6 +40,22 @@ interface MatchResult {
     pgn: string;
     moves: string[];
 }
+
+type SideTab = 'current' | 'history';
+
+function toHistoryEntry(result: MatchResult): GameHistoryEntry {
+    return {
+        id: `match-${Date.now()}-${result.gameNumber}`,
+        title: `Game ${result.gameNumber}`,
+        subtitle: `${result.white} vs ${result.black}`,
+        result: result.result,
+        moves: [...result.moves],
+        pgn: result.pgn,
+        white: result.white,
+        black: result.black,
+    };
+}
+
 export default function AIvsAI() {
     const { emit, on, off } = useSocket();
     const { appTheme, themes, setThemeById } = useAppTheme();
@@ -55,10 +75,14 @@ export default function AIvsAI() {
     const [currentGame, setCurrentGame] = useState(0);
     const [score, setScore] = useState<MatchScore | null>(null);
     const [results, setResults] = useState<MatchResult[]>([]);
+    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
+    const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+    const [selectedHistoryPlyIndex, setSelectedHistoryPlyIndex] = useState(0);
     const [engineInfo, setEngineInfo] = useState<any>(null);
     const [currentWhite, setCurrentWhite] = useState('');
     const [currentBlack, setCurrentBlack] = useState('');
     const [showThemes, setShowThemes] = useState(false);
+    const [sideTab, setSideTab] = useState<SideTab>('current');
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -66,30 +90,31 @@ export default function AIvsAI() {
     }>({
         open: false, message: '', severity: 'info',
     });
+
     const startAckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
         emit('engine:list', (list: EngineConfig[]) => {
             setEngines(list);
             if (list.length >= 2) {
-                setWhiteEngine(list[0].name);
-                setBlackEngine(list[1].name);
+                setWhiteEngine((current) => current || list[0].name);
+                setBlackEngine((current) => current || list[1].name);
             }
             else if (list.length === 1) {
-                setWhiteEngine(list[0].name);
-                setBlackEngine(list[0].name);
+                setWhiteEngine((current) => current || list[0].name);
+                setBlackEngine((current) => current || list[0].name);
             }
         });
+
         const cleanup = on('engine:list-update', (list: EngineConfig[]) => {
             setEngines(list);
         });
+
         return cleanup;
     }, [emit, on]);
+
     useEffect(() => {
-        const gameStartHandler = (info: {
-            gameNum: number;
-            white: string;
-            black: string;
-        }) => {
+        const gameStartHandler = (info: { gameNum: number; white: string; black: string }) => {
             setCurrentGame(info.gameNum);
             setCurrentFen('start');
             setCurrentMoves([]);
@@ -97,40 +122,47 @@ export default function AIvsAI() {
             setCurrentWhite(info.white);
             setCurrentBlack(info.black);
         };
+
         const gameStateHandler = (state: any) => {
             setCurrentFen(state.fen);
             setCurrentMoves(state.movesSan || []);
-            if (state.lastMove)
+            if (state.lastMove) {
                 setLastMove(state.lastMove);
+            }
         };
+
         const engineInfoHandler = (data: any) => {
             setEngineInfo(data.info);
         };
-        const matchUpdateHandler = (update: {
-            result: MatchResult;
-            score: MatchScore;
-        }) => {
+
+        const matchUpdateHandler = (update: { result: MatchResult; score: MatchScore }) => {
             setResults((prev) => [...prev, update.result]);
             setScore(update.score);
+
+            const historyEntry = toHistoryEntry(update.result);
+            setHistoryEntries((prev) => [historyEntry, ...prev]);
+            setSelectedHistoryId(historyEntry.id);
+            setSelectedHistoryPlyIndex(historyEntry.moves.length);
         };
-        const matchEndHandler = (data: {
-            results: MatchResult[];
-            score: MatchScore;
-        }) => {
+
+        const matchEndHandler = (data: { results: MatchResult[]; score: MatchScore }) => {
             setIsRunning(false);
             setResults(data.results);
             setScore(data.score);
             setSnackbar({ open: true, message: 'Match completed!', severity: 'success' });
         };
-        const matchErrorHandler = (err: any) => {
-            setSnackbar({ open: true, message: `Error in game ${err.gameNum}: ${err.error}`, severity: 'error' });
+
+        const matchErrorHandler = (error: any) => {
+            setSnackbar({ open: true, message: `Error in game ${error.gameNum}: ${error.error}`, severity: 'error' });
         };
+
         on('match:game-start', gameStartHandler);
         on('match:game-state', gameStateHandler);
         on('match:engine-info', engineInfoHandler);
         on('match:update', matchUpdateHandler);
         on('match:end', matchEndHandler);
         on('match:error', matchErrorHandler);
+
         return () => {
             off('match:game-start', gameStartHandler);
             off('match:game-state', gameStateHandler);
@@ -140,21 +172,24 @@ export default function AIvsAI() {
             off('match:error', matchErrorHandler);
         };
     }, [on, off]);
-    useEffect(() => {
-        return () => {
-            if (startAckTimeoutRef.current) {
-                clearTimeout(startAckTimeoutRef.current);
-                startAckTimeoutRef.current = null;
-            }
-        };
-    }, []);
-    const handleStartMatch = () => {
-        if (!whiteEngine || !blackEngine)
-            return;
+
+    useEffect(() => () => {
         if (startAckTimeoutRef.current) {
             clearTimeout(startAckTimeoutRef.current);
             startAckTimeoutRef.current = null;
         }
+    }, []);
+
+    const handleStartMatch = () => {
+        if (!whiteEngine || !blackEngine) {
+            return;
+        }
+
+        if (startAckTimeoutRef.current) {
+            clearTimeout(startAckTimeoutRef.current);
+            startAckTimeoutRef.current = null;
+        }
+
         setIsStarting(true);
         setResults([]);
         setScore(null);
@@ -165,10 +200,13 @@ export default function AIvsAI() {
         setEngineInfo(null);
         setCurrentWhite('');
         setCurrentBlack('');
+        setSideTab('current');
+
         startAckTimeoutRef.current = setTimeout(() => {
             setIsStarting(false);
             setSnackbar({ open: true, message: 'Match start timed out. Check server connection and engine setup.', severity: 'error' });
         }, 8000);
+
         emit('match:start', {
             whiteEngine,
             blackEngine,
@@ -179,27 +217,58 @@ export default function AIvsAI() {
                 clearTimeout(startAckTimeoutRef.current);
                 startAckTimeoutRef.current = null;
             }
+
             setIsStarting(false);
             if (!response.success) {
                 setSnackbar({ open: true, message: response.error || 'Failed to start match', severity: 'error' });
                 return;
             }
+
             setIsRunning(true);
         });
     };
+
     const handleStopMatch = () => {
         emit('match:stop', () => { });
         setIsRunning(false);
     };
+
+    const handlePrepareNewMatch = () => {
+        setResults([]);
+        setScore(null);
+        setCurrentFen('start');
+        setCurrentMoves([]);
+        setLastMove(null);
+        setCurrentGame(0);
+        setEngineInfo(null);
+        setCurrentWhite('');
+        setCurrentBlack('');
+        setSideTab('current');
+    };
+
     const handleDownloadPGN = (pgnContent: string, gameNum: number) => {
         const blob = new Blob([pgnContent], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `game_${gameNum}.pgn`;
-        a.click();
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `game_${gameNum}.pgn`;
+        anchor.click();
         URL.revokeObjectURL(url);
     };
+
+    const handleDownloadHistoryPGN = (entry: GameHistoryEntry) => {
+        if (!entry.pgn) {
+            return;
+        }
+        const blob = new Blob([entry.pgn], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${entry.title.replace(/\s+/g, '_')}.pgn`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    };
+
     const boardTheme = useMemo(() => ({
         name: appTheme.name,
         light: appTheme.boardLight,
@@ -210,10 +279,145 @@ export default function AIvsAI() {
         legalDot: appTheme.legalDot,
         legalCapture: appTheme.legalCapture,
     }), [appTheme]);
-    const whiteEngineCfg = engines.find((e) => e.name === whiteEngine);
-    const blackEngineCfg = engines.find((e) => e.name === blackEngine);
+
+    const selectedHistoryEntry = useMemo(
+        () => historyEntries.find((entry) => entry.id === selectedHistoryId) ?? historyEntries[0] ?? null,
+        [historyEntries, selectedHistoryId],
+    );
+
+    const historyPlayback = useMemo(
+        () => (selectedHistoryEntry ? buildHistoryPlayback(selectedHistoryEntry.moves) : [{ fen: 'start', lastMove: null }]),
+        [selectedHistoryEntry],
+    );
+
+    const historySnapshotIndex = Math.min(Math.max(selectedHistoryPlyIndex, 0), historyPlayback.length - 1);
+    const historySnapshot = historyPlayback[historySnapshotIndex];
+    const showingHistory = sideTab === 'history' && !!selectedHistoryEntry;
+
+    const whiteEngineCfg = engines.find((engine) => engine.name === whiteEngine);
+    const blackEngineCfg = engines.find((engine) => engine.name === blackEngine);
     const anyWeightsBased = whiteEngineCfg?.hasWeightsFile || blackEngineCfg?.hasWeightsFile;
-    return (<Box>
+    const renderSetupCard = () => (
+        <Fade in>
+            <Card data-tour="match-setup-card" sx={{ bgcolor: 'background.paper' }}>
+                <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                        <MatchIcon sx={{ color: 'primary.main' }} />
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            Match Setup
+                        </Typography>
+                    </Box>
+
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Engine 1 (White first)</InputLabel>
+                        <Select value={whiteEngine} label="Engine 1 (White first)" onChange={(event) => setWhiteEngine(event.target.value)}>
+                            {engines.map((engine) => (
+                                <MenuItem key={engine.name} value={engine.name}>
+                                    {engine.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl fullWidth sx={{ mb: 3 }}>
+                        <InputLabel>Engine 2 (Black first)</InputLabel>
+                        <Select value={blackEngine} label="Engine 2 (Black first)" onChange={(event) => setBlackEngine(event.target.value)}>
+                            {engines.map((engine) => (
+                                <MenuItem key={engine.name} value={engine.name}>
+                                    {engine.name}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <TextField label="Number of Games" type="number" fullWidth value={numGames} onChange={(event) => setNumGames(Math.max(1, parseInt(event.target.value, 10) || 1))} inputProps={{ min: 1, max: 100 }} sx={{ mb: 3 }} />
+
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                        Time per move: {(moveTime / 1000).toFixed(1)}s
+                    </Typography>
+                    {anyWeightsBased ? (
+                        <Box sx={{ p: 1, mb: 3, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                One or more engines use a fixed node limit per move.
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <Slider value={moveTime} onChange={(_, value) => setMoveTime(value as number)} min={100} max={10000} step={100} valueLabelDisplay="auto" valueLabelFormat={(value) => `${(value / 1000).toFixed(1)}s`} sx={{ mb: 3 }} />
+                    )}
+
+                    <Button variant="contained" size="large" fullWidth startIcon={<PlayIcon />} onClick={handleStartMatch} disabled={!whiteEngine || !blackEngine || engines.length === 0 || isStarting}>
+                        {isStarting ? 'Starting...' : 'Start Match'}
+                    </Button>
+
+                    {engines.length < 1 && (
+                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: 'warning.main' }}>
+                            Add at least one engine in the Engines page.
+                        </Typography>
+                    )}
+                </CardContent>
+            </Card>
+        </Fade>
+    );
+
+    const renderScoreCard = () => (
+        score ? (
+            <Card sx={{ bgcolor: 'background.paper' }}>
+                <CardContent>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', mb: 1.5 }}>
+                        Match Score
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                {score.white.score}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {score.white.name}
+                            </Typography>
+                        </Box>
+                        <Typography variant="h5" sx={{ color: 'text.secondary' }}>-</Typography>
+                        <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.main' }}>
+                                {score.black.score}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {score.black.name}
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center' }}>
+                        {score.gamesPlayed}/{score.totalGames} games - {score.draws} draws
+                    </Typography>
+                </CardContent>
+            </Card>
+        ) : null
+    );
+
+    const renderCurrentPanel = () => {
+        if (!isRunning && results.length === 0) {
+            return renderSetupCard();
+        }
+
+        return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {renderScoreCard()}
+                <EngineInfo info={engineInfo} isThinking={isRunning} />
+                <Box sx={{ minHeight: 180 }}>
+                    <MoveList moves={currentMoves} currentMoveIndex={currentMoves.length - 1} />
+                </Box>
+                {results.length > 0 && (
+                    <MatchResults
+                        results={results}
+                        onDownloadPGN={handleDownloadPGN}
+                    />
+                )}
+            </Box>
+        );
+    };
+
+    return (
+        <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
                 Engine Matches
             </Typography>
@@ -221,154 +425,137 @@ export default function AIvsAI() {
                 Run AI vs AI matches
             </Typography>
 
-            {!isRunning && results.length === 0 ? (<Fade in>
-                    <Card data-tour="match-setup-card" sx={{ maxWidth: 480, bgcolor: 'background.paper' }}>
-                        <CardContent sx={{ p: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-                                <MatchIcon sx={{ color: 'primary.main' }}/>
-                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                    Match Setup
-                                </Typography>
-                            </Box>
-
-                            <FormControl fullWidth sx={{ mb: 2 }}>
-                                <InputLabel>Engine 1 (White first)</InputLabel>
-                                <Select value={whiteEngine} label="Engine 1 (White first)" onChange={(e) => setWhiteEngine(e.target.value)}>
-                                    {engines.map((eng) => (<MenuItem key={eng.name} value={eng.name}>
-                                            {eng.name}
-                                        </MenuItem>))}
-                                </Select>
-                            </FormControl>
-
-                            <FormControl fullWidth sx={{ mb: 3 }}>
-                                <InputLabel>Engine 2 (Black first)</InputLabel>
-                                <Select value={blackEngine} label="Engine 2 (Black first)" onChange={(e) => setBlackEngine(e.target.value)}>
-                                    {engines.map((eng) => (<MenuItem key={eng.name} value={eng.name}>
-                                            {eng.name}
-                                        </MenuItem>))}
-                                </Select>
-                            </FormControl>
-
-                            <TextField label="Number of Games" type="number" fullWidth value={numGames} onChange={(e) => setNumGames(Math.max(1, parseInt(e.target.value) || 1))} inputProps={{ min: 1, max: 100 }} sx={{ mb: 3 }}/>
-
-                            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                                Time per move: {(moveTime / 1000).toFixed(1)}s
-                            </Typography>
-                            {anyWeightsBased ? (<Box sx={{
-                    p: 1, mb: 3, borderRadius: 1,
-                    bgcolor: 'action.hover',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                }}>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        🎯 One or more engines use a fixed node limit per move.
-                                        Standard engines still use the time-per-move slider.
-                                    </Typography>
-                                    {!anyWeightsBased && (<Slider value={moveTime} onChange={(_, val) => setMoveTime(val as number)} min={100} max={10000} step={100} valueLabelDisplay="auto" valueLabelFormat={(v) => `${(v / 1000).toFixed(1)}s`} sx={{ mt: 1 }}/>)}
-                                </Box>) : (<Slider value={moveTime} onChange={(_, val) => setMoveTime(val as number)} min={100} max={10000} step={100} valueLabelDisplay="auto" valueLabelFormat={(v) => `${(v / 1000).toFixed(1)}s`} sx={{ mb: 3 }}/>)}
-
-                            <Button variant="contained" size="large" fullWidth startIcon={<PlayIcon />} onClick={handleStartMatch} disabled={!whiteEngine || !blackEngine || engines.length === 0 || isStarting}>
-                                {isStarting ? 'Starting...' : 'Start Match'}
-                            </Button>
-
-                            {engines.length < 1 && (<Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: 'warning.main' }}>
-                                    Add at least one engine in the Engines page.
-                                </Typography>)}
-                        </CardContent>
-                    </Card>
-                </Fade>) : (<Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                    
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                     <Box sx={{ flex: '0 0 auto' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                            <Chip label={currentGame > 0 ? `Game ${currentGame}/${numGames}` : 'Waiting...'} color="primary" size="small" variant="outlined" sx={{ height: 24, fontSize: '0.7rem' }}/>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5, gap: 1 }}>
+                            <Chip
+                                label={
+                                    showingHistory
+                                        ? 'History replay'
+                                        : currentGame > 0
+                                            ? `Game ${currentGame}/${numGames}`
+                                            : 'Ready to start'
+                                }
+                                color="primary"
+                                size="small"
+                                variant={showingHistory ? 'filled' : 'outlined'}
+                                sx={{ height: 24, fontSize: '0.7rem' }}
+                            />
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                {currentWhite && currentBlack && (<Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                                {showingHistory && selectedHistoryEntry && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                                        {selectedHistoryEntry.white} vs {selectedHistoryEntry.black}
+                                    </Typography>
+                                )}
+                                {!showingHistory && currentWhite && currentBlack && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
                                         {currentWhite} vs {currentBlack}
-                                    </Typography>)}
+                                    </Typography>
+                                )}
                                 <Tooltip title="Theme">
-                                    <IconButton size="small" onClick={() => setShowThemes(!showThemes)} sx={{ color: 'text.secondary' }}>
-                                        <ThemeIcon fontSize="small"/>
+                                    <IconButton size="small" onClick={() => setShowThemes((value) => !value)} sx={{ color: 'text.secondary' }}>
+                                        <ThemeIcon fontSize="small" />
                                     </IconButton>
                                 </Tooltip>
                             </Box>
                         </Box>
-                        {showThemes && (<Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                                {themes.map((t) => (<Tooltip key={t.id} title={t.name}>
-                                        <Box onClick={() => { setThemeById(t.id); setShowThemes(false); }} sx={{
-                        width: 28, height: 28, borderRadius: 0.75, cursor: 'pointer', overflow: 'hidden',
-                        border: appTheme.id === t.id ? '2px solid' : '2px solid transparent',
-                        borderColor: appTheme.id === t.id ? 'primary.main' : 'transparent',
-                        display: 'flex', transition: 'border-color 0.15s', '&:hover': { borderColor: 'primary.light' }
-                    }}>
-                                            <Box sx={{ width: '50%', height: '100%', bgcolor: t.boardLight }}/>
-                                            <Box sx={{ width: '50%', height: '100%', bgcolor: t.boardDark }}/>
+
+                        {showThemes && (
+                            <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+                                {themes.map((theme) => (
+                                    <Tooltip key={theme.id} title={theme.name}>
+                                        <Box
+                                            onClick={() => {
+                                                setThemeById(theme.id);
+                                                setShowThemes(false);
+                                            }}
+                                            sx={{
+                                                width: 28,
+                                                height: 28,
+                                                borderRadius: 0.75,
+                                                cursor: 'pointer',
+                                                overflow: 'hidden',
+                                                border: appTheme.id === theme.id ? '2px solid' : '2px solid transparent',
+                                                borderColor: appTheme.id === theme.id ? 'primary.main' : 'transparent',
+                                                display: 'flex',
+                                                transition: 'border-color 0.15s',
+                                                '&:hover': { borderColor: 'primary.light' },
+                                            }}
+                                        >
+                                            <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardLight }} />
+                                            <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardDark }} />
                                         </Box>
-                                    </Tooltip>))}
-                            </Box>)}
-                        <ChessboardPanel fen={currentFen} orientation="white" interactive={false} lastMove={lastMove} boardTheme={boardTheme}/>
+                                    </Tooltip>
+                                ))}
+                            </Box>
+                        )}
+
+                        <ChessboardPanel
+                            fen={showingHistory ? historySnapshot.fen : currentFen}
+                            orientation="white"
+                            interactive={false}
+                            lastMove={showingHistory ? historySnapshot.lastMove : lastMove}
+                            boardTheme={boardTheme}
+                        />
+
                         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                            {isRunning ? (<Button variant="outlined" color="error" startIcon={<StopIcon />} onClick={handleStopMatch}>
+                            {showingHistory ? (
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    Viewing a saved match game. Switch back to Current Match to start or stop live runs.
+                                </Typography>
+                            ) : isRunning ? (
+                                <Button variant="outlined" color="error" startIcon={<StopIcon />} onClick={handleStopMatch}>
                                     Stop Match
-                                </Button>) : (<Button variant="contained" startIcon={<PlayIcon />} onClick={() => {
-                    setResults([]);
-                    setScore(null);
-                    setCurrentFen('start');
-                    setCurrentMoves([]);
-                }}>
+                                </Button>
+                            ) : results.length > 0 ? (
+                                <Button variant="contained" startIcon={<PlayIcon />} onClick={handlePrepareNewMatch}>
                                     New Match
-                                </Button>)}
+                                </Button>
+                            ) : (
+                                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+                                    Configure a match on the right to start playing. Your saved history stays available in the History tab.
+                                </Typography>
+                            )}
                         </Box>
                     </Box>
 
-                    
-                    <Box sx={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        
-                        {score && (<Card sx={{ bgcolor: 'background.paper' }}>
-                                <CardContent>
-                                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', mb: 1.5 }}>
-                                        Match Score
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-                                        <Box sx={{ textAlign: 'center' }}>
-                                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                                                {score.white.score}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {score.white.name}
-                                            </Typography>
-                                        </Box>
-                                        <Typography variant="h5" sx={{ color: 'text.secondary' }}>-</Typography>
-                                        <Box sx={{ textAlign: 'center' }}>
-                                            <Typography variant="h4" sx={{ fontWeight: 700, color: 'secondary.main' }}>
-                                                {score.black.score}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {score.black.name}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Divider sx={{ my: 1.5 }}/>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center' }}>
-                                        {score.gamesPlayed}/{score.totalGames} games - {score.draws} draws
-                                    </Typography>
-                                </CardContent>
-                            </Card>)}
-
-                        <EngineInfo info={engineInfo} isThinking={isRunning}/>
-
-                        <Box sx={{ flex: 1, minHeight: 150 }}>
-                            <MoveList moves={currentMoves} currentMoveIndex={currentMoves.length - 1}/>
-                        </Box>
-
-                        
-                        {results.length > 0 && (<MatchResults results={results} onDownloadPGN={handleDownloadPGN}/>)}
+                    <Box sx={{ flex: 1, minWidth: 320, display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 620 }}>
+                        <Card sx={{ bgcolor: 'background.paper' }}>
+                            <Tabs
+                                value={sideTab}
+                                onChange={(_, value: SideTab) => setSideTab(value)}
+                                variant="fullWidth"
+                                sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                            >
+                                <Tab value="current" label="Current Match" />
+                                <Tab value="history" label={`Game History (${historyEntries.length})`} />
+                            </Tabs>
+                            <Box sx={{ p: 1.5 }}>
+                                {sideTab === 'current' ? renderCurrentPanel() : (
+                                    <GameHistoryPanel
+                                        entries={historyEntries}
+                                        selectedEntryId={selectedHistoryEntry?.id || null}
+                                        onSelectEntry={(entryId) => {
+                                            setSelectedHistoryId(entryId);
+                                            const entry = historyEntries.find((item) => item.id === entryId);
+                                            setSelectedHistoryPlyIndex(entry?.moves.length ?? 0);
+                                        }}
+                                        selectedPlyIndex={historySnapshotIndex}
+                                        onSelectPlyIndex={setSelectedHistoryPlyIndex}
+                                        onDownloadPGN={handleDownloadHistoryPGN}
+                                        emptyMessage="Complete a match game to add it to history."
+                                    />
+                                )}
+                            </Box>
+                        </Card>
                     </Box>
-                </Box>)}
+                </Box>
 
-            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <Alert onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity} variant="filled">
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((state) => ({ ...state, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert onClose={() => setSnackbar((state) => ({ ...state, open: false }))} severity={snackbar.severity} variant="filled">
                     {snackbar.message}
                 </Alert>
             </Snackbar>
-        </Box>);
+        </Box>
+    );
 }
