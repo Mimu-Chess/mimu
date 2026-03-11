@@ -72,3 +72,5 @@ bun run start
 ## License
 
 See [`LICENSE`](LICENSE).
+
+if u wish to support this project donate [`here`](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
