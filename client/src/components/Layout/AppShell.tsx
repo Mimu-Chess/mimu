@@ -60,7 +60,7 @@ export default function AppShell({ activeView, onViewChange, children }: AppShel
                 {navItems.map((item, idx) => {
             const isActive = activeView === item.id;
             return (<Box key={item.id}>
-                            <ListItemButton selected={isActive} onClick={() => handleNavClick(item.id)} sx={{
+                            <ListItemButton data-tour={`nav-${item.id}`} selected={isActive} onClick={() => handleNavClick(item.id)} sx={{
                     py: 1.1,
                     px: 1.5,
                     borderRadius: '12px',

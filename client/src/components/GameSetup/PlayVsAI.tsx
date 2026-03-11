@@ -185,7 +185,7 @@ export default function PlayVsAI() {
             </Typography>
 
             {!isPlaying && !gameState ? (<Fade in>
-                    <Card sx={{ maxWidth: 400, bgcolor: 'background.paper' }}>
+                    <Card data-tour="play-setup-card" sx={{ maxWidth: 400, bgcolor: 'background.paper' }}>
                         <CardContent sx={{ p: 2.5 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                 <GameIcon sx={{ color: 'primary.main', fontSize: 20 }}/>

@@ -6,11 +6,15 @@ import PlayVsAI from './components/GameSetup/PlayVsAI';
 import AIvsAI from './components/GameSetup/AIvsAI';
 import EngineManagerPanel from './components/EngineManager/EngineManagerPanel';
 import { DesktopSplash } from './components/DesktopSplash/DesktopSplash';
+import { FirstRunTour } from './components/Onboarding/FirstRunTour';
+
+const ONBOARDING_STORAGE_KEY = 'mimu-chess:first-run-tour-complete';
 
 function AppContent() {
     const { muiTheme } = useAppTheme();
     const [activeView, setActiveView] = useState('play');
     const [isAppReady, setIsAppReady] = useState(false);
+    const [showFirstRunTour, setShowFirstRunTour] = useState(false);
 
     useEffect(() => {
         // Initialize Neutralino if available
@@ -27,6 +31,26 @@ function AppContent() {
             clearTimeout(timeoutId);
         };
     }, []);
+
+    useEffect(() => {
+        if (!isAppReady) {
+            return;
+        }
+        if (typeof window === 'undefined') {
+            return;
+        }
+        const hasCompletedTour = window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+        if (!hasCompletedTour) {
+            setShowFirstRunTour(true);
+        }
+    }, [isAppReady]);
+
+    const handleFinishFirstRunTour = () => {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+        }
+        setShowFirstRunTour(false);
+    };
 
     const renderView = () => {
         switch (activeView) {
@@ -46,9 +70,17 @@ function AppContent() {
             {!isAppReady ? (
                 <DesktopSplash />
             ) : (
-                <AppShell activeView={activeView} onViewChange={setActiveView}>
-                    {renderView()}
-                </AppShell>
+                <>
+                    <AppShell activeView={activeView} onViewChange={setActiveView}>
+                        {renderView()}
+                    </AppShell>
+                    <FirstRunTour
+                        open={showFirstRunTour}
+                        activeView={activeView}
+                        onViewChange={setActiveView}
+                        onFinish={handleFinishFirstRunTour}
+                    />
+                </>
             )}
         </MuiThemeProvider>
     );

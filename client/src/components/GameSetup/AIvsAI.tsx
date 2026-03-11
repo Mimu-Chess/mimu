@@ -222,7 +222,7 @@ export default function AIvsAI() {
             </Typography>
 
             {!isRunning && results.length === 0 ? (<Fade in>
-                    <Card sx={{ maxWidth: 480, bgcolor: 'background.paper' }}>
+                    <Card data-tour="match-setup-card" sx={{ maxWidth: 480, bgcolor: 'background.paper' }}>
                         <CardContent sx={{ p: 3 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
                                 <MatchIcon sx={{ color: 'primary.main' }}/>

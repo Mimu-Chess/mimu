@@ -183,7 +183,7 @@ export default function EngineManagerPanel() {
     };
 
     return (
-        <Box>
+        <Box data-tour="engines-panel">
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                 <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700 }}>
@@ -193,7 +193,7 @@ export default function EngineManagerPanel() {
                         Manage your UCI chess engines
                     </Typography>
                 </Box>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={openAddDialog}>
+                <Button data-tour="engines-add-button" variant="contained" startIcon={<AddIcon />} onClick={openAddDialog}>
                     Add Engine
                 </Button>
             </Box>
