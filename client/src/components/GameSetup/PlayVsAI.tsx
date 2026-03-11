@@ -8,6 +8,7 @@ import GameControls from '../GameControls/GameControls';
 import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
+import { PLAY_HISTORY_STORAGE_KEY, readGameHistory, writeGameHistory } from '../../lib/gameHistoryStorage';
 
 interface EngineConfig {
     name: string;
@@ -51,7 +52,7 @@ export default function PlayVsAI() {
     const [pgn, setPgn] = useState<string | null>(null);
     const [showThemes, setShowThemes] = useState(false);
     const [sideTab, setSideTab] = useState<SideTab>('current');
-    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
+    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>(() => readGameHistory(PLAY_HISTORY_STORAGE_KEY));
     const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
     const [selectedHistoryPlyIndex, setSelectedHistoryPlyIndex] = useState(0);
     const [snackbar, setSnackbar] = useState<{
@@ -69,7 +70,39 @@ export default function PlayVsAI() {
         engineName: string;
         humanColor: 'white' | 'black';
     } | null>(null);
+    const currentHistoryEntryIdRef = useRef<string | null>(null);
     const lastSavedPgnRef = useRef<string | null>(null);
+
+    const upsertHistoryEntry = useCallback((state: GameState | null, pgnData?: string) => {
+        const gameConfig = currentGameConfigRef.current;
+        if (!state?.movesSan?.length || !gameConfig) {
+            return;
+        }
+
+        const white = gameConfig.humanColor === 'white' ? 'Human' : gameConfig.engineName;
+        const black = gameConfig.humanColor === 'black' ? 'Human' : gameConfig.engineName;
+        const entryId = currentHistoryEntryIdRef.current || `play-${Date.now()}`;
+
+        setHistoryEntries((prev) => {
+            const existingEntry = prev.find((entry) => entry.id === entryId);
+            const nextEntry: GameHistoryEntry = {
+                id: entryId,
+                title: `${white} vs ${black}`,
+                subtitle: existingEntry?.subtitle || `${new Date().toLocaleString()} - ${gameConfig.engineName}`,
+                result: state.result || existingEntry?.result || '*',
+                moves: [...state.movesSan],
+                pgn: pgnData || existingEntry?.pgn,
+                white,
+                black,
+            };
+
+            return [nextEntry, ...prev.filter((entry) => entry.id !== entryId)];
+        });
+
+        currentHistoryEntryIdRef.current = entryId;
+        setSelectedHistoryId(entryId);
+        setSelectedHistoryPlyIndex(state.movesSan.length);
+    }, []);
 
     useEffect(() => {
         emit('engine:list', (list: EngineConfig[]) => {
@@ -101,6 +134,7 @@ export default function PlayVsAI() {
             setIsPlaying(false);
             isPlayingRef.current = false;
             setIsThinking(false);
+            upsertHistoryEntry(state);
 
             let message = 'Game over!';
             if (state.result === '1-0') {
@@ -123,29 +157,8 @@ export default function PlayVsAI() {
                 return;
             }
 
-            const finishedState = latestGameStateRef.current;
-            const gameConfig = currentGameConfigRef.current;
-            if (!finishedState?.movesSan?.length || !gameConfig) {
-                return;
-            }
-
-            const white = gameConfig.humanColor === 'white' ? 'Human' : gameConfig.engineName;
-            const black = gameConfig.humanColor === 'black' ? 'Human' : gameConfig.engineName;
-            const historyEntry: GameHistoryEntry = {
-                id: `play-${Date.now()}`,
-                title: `${white} vs ${black}`,
-                subtitle: `${new Date().toLocaleString()} - ${gameConfig.engineName}`,
-                result: finishedState.result || '*',
-                moves: [...finishedState.movesSan],
-                pgn: pgnData,
-                white,
-                black,
-            };
-
             lastSavedPgnRef.current = pgnData;
-            setHistoryEntries((prev) => [historyEntry, ...prev]);
-            setSelectedHistoryId(historyEntry.id);
-            setSelectedHistoryPlyIndex(historyEntry.moves.length);
+            upsertHistoryEntry(latestGameStateRef.current, pgnData);
         };
 
         on('game:state', stateHandler);
@@ -159,7 +172,11 @@ export default function PlayVsAI() {
             off('game:over', gameOverHandler);
             off('game:pgn', pgnHandler);
         };
-    }, [on, off]);
+    }, [on, off, upsertHistoryEntry]);
+
+    useEffect(() => {
+        writeGameHistory(PLAY_HISTORY_STORAGE_KEY, historyEntries);
+    }, [historyEntries]);
 
     const handleStartGame = () => {
         if (!selectedEngine) {
@@ -181,6 +198,7 @@ export default function PlayVsAI() {
                     engineName: selectedEngine,
                     humanColor,
                 };
+                currentHistoryEntryIdRef.current = null;
                 lastSavedPgnRef.current = null;
                 setOrientation(humanColor);
                 setGameState(response.state);
@@ -234,6 +252,12 @@ export default function PlayVsAI() {
         setPgn(null);
         setSideTab('current');
     };
+
+    const handleClearHistory = useCallback(() => {
+        setHistoryEntries([]);
+        setSelectedHistoryId(null);
+        setSelectedHistoryPlyIndex(0);
+    }, []);
 
     const handleDownloadPGN = () => {
         if (!pgn) {
@@ -489,6 +513,7 @@ export default function PlayVsAI() {
                                     selectedPlyIndex={historySnapshotIndex}
                                     onSelectPlyIndex={setSelectedHistoryPlyIndex}
                                     onDownloadPGN={handleDownloadHistoryPGN}
+                                    onClearHistory={handleClearHistory}
                                     emptyMessage="Finish a game to add it to history."
                                 />
                             )}

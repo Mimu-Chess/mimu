@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { Box, Button, Chip, Divider, IconButton, List, ListItemButton, ListItemText, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Chip, Divider, IconButton, List, ListItemButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Download as DownloadIcon, FastForward as EndIcon, ChevronLeft as PrevIcon, ChevronRight as NextIcon, FirstPage as StartIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, FastForward as EndIcon, ChevronLeft as PrevIcon, ChevronRight as NextIcon, FirstPage as StartIcon, DeleteSweep as ClearHistoryIcon } from '@mui/icons-material';
 import { Chess } from 'chess.js';
 import MoveList from '../MoveList/MoveList';
 
@@ -58,6 +58,7 @@ interface GameHistoryPanelProps {
     onSelectPlyIndex: (plyIndex: number) => void;
     onDownloadPGN?: (entry: GameHistoryEntry) => void;
     emptyMessage?: string;
+    onClearHistory?: () => void;
 }
 
 function resultLabel(result: string): string {
@@ -75,6 +76,7 @@ export default function GameHistoryPanel({
     onSelectPlyIndex,
     onDownloadPGN,
     emptyMessage = 'No completed games yet.',
+    onClearHistory,
 }: GameHistoryPanelProps) {
     const selectedEntry = useMemo(
         () => entries.find((entry) => entry.id === selectedEntryId) ?? entries[0] ?? null,
@@ -91,9 +93,18 @@ export default function GameHistoryPanel({
     if (entries.length === 0) {
         return (
             <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                    Game History
-                </Typography>
+                <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
+                        Game History
+                    </Typography>
+                    {onClearHistory && (
+                        <Tooltip title="Clear history">
+                            <IconButton size="small" onClick={onClearHistory}>
+                                <ClearHistoryIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                     {emptyMessage}
                 </Typography>
@@ -103,10 +114,20 @@ export default function GameHistoryPanel({
 
     return (
         <Paper sx={{ bgcolor: 'background.paper', overflow: 'hidden' }}>
-            <Box sx={{ p: 2 }}>
-                <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                    Game History
-                </Typography>
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                <Box>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
+                        Game History
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {entries.length} saved {entries.length === 1 ? 'game' : 'games'}
+                    </Typography>
+                </Box>
+                {onClearHistory && (
+                    <Button size="small" color="inherit" startIcon={<ClearHistoryIcon />} onClick={onClearHistory}>
+                        Clear
+                    </Button>
+                )}
             </Box>
             <Divider />
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '220px minmax(0, 1fr)' }, columnGap: { xl: 2 }, minHeight: 420 }}>
@@ -125,12 +146,20 @@ export default function GameHistoryPanel({
                                     borderColor: alpha('#ffffff', 0.05),
                                 }}
                             >
-                                <ListItemText
-                                    primary={entry.title}
-                                    secondary={entry.subtitle}
-                                    primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }}
-                                    secondaryTypographyProps={{ fontSize: '0.72rem', color: 'text.secondary' }}
-                                />
+                                <Box sx={{ minWidth: 0, width: '100%' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+                                            {entry.title}
+                                        </Typography>
+                                        <Chip label={resultLabel(entry.result)} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+                                    </Box>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
+                                        {entry.subtitle}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
+                                        {entry.moves.length} plies
+                                    </Typography>
+                                </Box>
                             </ListItemButton>
                         ))}
                     </List>

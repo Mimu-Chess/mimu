@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Alert, Box, Button, Card, CardContent, Chip, Divider, Fade, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, TextField, Tooltip, Typography } from '@mui/material';
 import { PlayArrow as PlayIcon, Stop as StopIcon, SmartToy as MatchIcon, Palette as ThemeIcon } from '@mui/icons-material';
 import ChessboardPanel from '../Chessboard/ChessboardPanel';
@@ -8,6 +8,7 @@ import MatchResults from '../MatchResults/MatchResults';
 import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
+import { MATCH_HISTORY_STORAGE_KEY, readGameHistory, writeGameHistory } from '../../lib/gameHistoryStorage';
 
 interface EngineConfig {
     name: string;
@@ -75,7 +76,7 @@ export default function AIvsAI() {
     const [currentGame, setCurrentGame] = useState(0);
     const [score, setScore] = useState<MatchScore | null>(null);
     const [results, setResults] = useState<MatchResult[]>([]);
-    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
+    const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>(() => readGameHistory(MATCH_HISTORY_STORAGE_KEY));
     const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
     const [selectedHistoryPlyIndex, setSelectedHistoryPlyIndex] = useState(0);
     const [engineInfo, setEngineInfo] = useState<any>(null);
@@ -172,6 +173,16 @@ export default function AIvsAI() {
             off('match:error', matchErrorHandler);
         };
     }, [on, off]);
+
+    useEffect(() => {
+        writeGameHistory(MATCH_HISTORY_STORAGE_KEY, historyEntries);
+    }, [historyEntries]);
+
+    const handleClearHistory = useCallback(() => {
+        setHistoryEntries([]);
+        setSelectedHistoryId(null);
+        setSelectedHistoryPlyIndex(0);
+    }, []);
 
     useEffect(() => () => {
         if (startAckTimeoutRef.current) {
@@ -540,12 +551,13 @@ export default function AIvsAI() {
                                             const entry = historyEntries.find((item) => item.id === entryId);
                                             setSelectedHistoryPlyIndex(entry?.moves.length ?? 0);
                                         }}
-                                        selectedPlyIndex={historySnapshotIndex}
-                                        onSelectPlyIndex={setSelectedHistoryPlyIndex}
-                                        onDownloadPGN={handleDownloadHistoryPGN}
-                                        emptyMessage="Complete a match game to add it to history."
-                                    />
-                                )}
+                                    selectedPlyIndex={historySnapshotIndex}
+                                    onSelectPlyIndex={setSelectedHistoryPlyIndex}
+                                    onDownloadPGN={handleDownloadHistoryPGN}
+                                    onClearHistory={handleClearHistory}
+                                    emptyMessage="Complete a match game to add it to history."
+                                />
+                            )}
                             </Box>
                         </Card>
                     </Box>

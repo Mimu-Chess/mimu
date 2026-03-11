@@ -214,15 +214,14 @@ function buildMuiTheme(t: AppTheme): Theme {
                         fontWeight: 600,
                         fontSize: '0.85rem',
                         borderRadius: 12,
-                        transition: 'all 0.18s ease',
+                        transition: 'background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease',
                     },
                     contained: {
-                        boxShadow: `0 4px 12px ${alpha(t.primary, 0.28)}`,
+                        boxShadow: 'none',
                         '&:hover': {
-                            boxShadow: `0 6px 18px ${alpha(t.primary, 0.40)}`,
-                            transform: 'translateY(-1px)',
+                            backgroundColor: alpha(t.primary, 0.82),
+                            boxShadow: 'none',
                         },
-                        '&:active': { transform: 'translateY(0px)' },
                     },
                 },
             },
@@ -301,12 +300,14 @@ function buildMuiTheme(t: AppTheme): Theme {
                     root: {
                         borderRadius: 10,
                         margin: '1px 6px',
-                        transition: 'background-color 0.15s, transform 0.1s',
+                        transition: 'background-color 0.15s ease',
                         '&.Mui-selected': {
                             backgroundColor: alpha(t.primary, 0.20),
                             '&:hover': { backgroundColor: alpha(t.primary, 0.28) },
                         },
-                        '&:hover': { transform: 'translateX(2px)' },
+                        '&:hover': {
+                            backgroundColor: alpha('#000000', 0.16),
+                        },
                     },
                 },
             },
