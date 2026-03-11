@@ -211,6 +211,24 @@ io.on('connection', (socket) => {
             callback({ success: false, error: (err as Error).message });
         }
     });
+    socket.on('engine:update', async (data: {
+        oldName: string;
+        name: string;
+        path: string;
+        weightsConfig?: {
+            weightsFile: string;
+            nodes: number;
+        };
+    }, callback) => {
+        try {
+            const config = await engineManager.updateEngine(data.oldName, data);
+            callback({ success: true, engine: config });
+            io.emit('engine:list-update', engineManager.getEngines());
+        }
+        catch (err) {
+            callback({ success: false, error: (err as Error).message });
+        }
+    });
     socket.on('engine:remove', (data: {
         name: string;
     }, callback) => {

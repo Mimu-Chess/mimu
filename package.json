@@ -12,9 +12,14 @@
         "dev:client": "bun run --cwd client dev",
         "dev:server": "bun run --cwd server dev",
         "build": "bun run --cwd client build && bun run --cwd server build",
+        "desktop:dev": "concurrently \"bun run dev:server\" \"bun run --cwd client build && bun -e \\\"const fs = require('fs'); fs.mkdirSync('dist/js', { recursive: true }); fs.copyFileSync('node_modules/@neutralinojs/lib/dist/neutralino.js', 'dist/js/neutralino.js');\\\" && neu run\"",
+        "desktop:build": "bun run --cwd client build && bun -e \"const fs = require('fs'); fs.mkdirSync('dist/js', { recursive: true }); fs.copyFileSync('node_modules/@neutralinojs/lib/dist/neutralino.js', 'dist/js/neutralino.js');\" && neu build",
         "install:all": "bun install"
     },
     "devDependencies": {
         "concurrently": "^8.2.2"
+    },
+    "dependencies": {
+        "@neutralinojs/lib": "^6.5.0"
     }
 }

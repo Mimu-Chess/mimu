@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "mimu-chess",
+      "dependencies": {
+        "@neutralinojs/lib": "^6.5.0",
+      },
       "devDependencies": {
         "concurrently": "^8.2.2",
       },
@@ -16,6 +19,7 @@
         "@emotion/styled": "^11.14.1",
         "@mui/icons-material": "^7.3.9",
         "@mui/material": "^7.3.9",
+        "@neutralinojs/lib": "^6.5.0",
         "chess.js": "^1.4.0",
         "react": "^19.2.0",
         "react-chessboard": "^5.10.0",
@@ -232,6 +236,8 @@
     "@mui/types": ["@mui/types@7.4.12", "", { "dependencies": { "@babel/runtime": "^7.28.6" }, "peerDependencies": { "@types/react": "^17.0.0 || ^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react"] }, "sha512-iKNAF2u9PzSIj40CjvKJWxFXJo122jXVdrmdh0hMYd+FR+NuJMkr/L88XwWLCRiJ5P1j+uyac25+Kp6YC4hu6w=="],
 
     "@mui/utils": ["@mui/utils@7.3.9", "", { "dependencies": { "@babel/runtime": "^7.28.6", "@mui/types": "^7.4.12", "@types/prop-types": "^15.7.15", "clsx": "^2.1.1", "prop-types": "^15.8.1", "react-is": "^19.2.3" }, "peerDependencies": { "@types/react": "^17.0.0 || ^18.0.0 || ^19.0.0", "react": "^17.0.0 || ^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react"] }, "sha512-U6SdZaGbfb65fqTsH3V5oJdFj9uYwyLE2WVuNvmbggTSDBb8QHrFsqY8BN3taK9t3yJ8/BPHD/kNvLNyjwM7Yw=="],
+
+    "@neutralinojs/lib": ["@neutralinojs/lib@6.5.0", "", { "optionalDependencies": { "@rollup/rollup-darwin-x64": "*", "@rollup/rollup-linux-x64-gnu": "*" } }, "sha512-ECgYh+CXAfMR1JVTvDw/kHhjL6LzNNcjk8Va1DZUSBkUwROqFTQ7zseFeuFtwGvutqvlWiwpGmU3s11rg/bdvA=="],
 
     "@popperjs/core": ["@popperjs/core@2.11.8", "", {}, "sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A=="],
 

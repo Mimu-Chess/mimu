@@ -20,6 +20,7 @@ export default function AppShell({ activeView, onViewChange, children }: AppShel
     const isMobile = useMediaQuery(muiTheme.breakpoints.down('lg'));
     const [mobileOpen, setMobileOpen] = useState(false);
     const [paletteAnchor, setPaletteAnchor] = useState<null | HTMLElement>(null);
+    const appVersion = __APP_VERSION__;
     const handleNavClick = (viewId: string) => {
         onViewChange(viewId);
         if (isMobile)
@@ -104,7 +105,7 @@ export default function AppShell({ activeView, onViewChange, children }: AppShel
             
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.2 }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem' }}>
-                    v1.0 · UCI
+                    v{appVersion}
                 </Typography>
                 <Tooltip title="Change theme">
                     <IconButton size="small" onClick={(e) => setPaletteAnchor(e.currentTarget)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>

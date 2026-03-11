@@ -1,18 +1,48 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { UCIEngine, EngineConfig } from './UCIEngine.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ENGINES_FILE = path.join(__dirname, '..', '..', 'engines.json');
+const LEGACY_ENGINES_FILE = path.join(__dirname, '..', '..', 'engines.json');
+
+function getConfigDirectory(): string {
+    const appFolderName = 'Mimu Chess';
+
+    switch (process.platform) {
+        case 'win32':
+            return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appFolderName);
+        case 'darwin':
+            return path.join(os.homedir(), 'Library', 'Application Support', appFolderName);
+        default:
+            return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'mimu-chess');
+    }
+}
+
+const ENGINES_DIR = getConfigDirectory();
+const ENGINES_FILE = path.join(ENGINES_DIR, 'engines.json');
 export class EngineManager {
     private engines: EngineConfig[] = [];
     private runningEngines: Map<string, UCIEngine> = new Map();
     constructor() {
         this.loadEngines();
     }
+    private ensureStorageDirectory(): void {
+        fs.mkdirSync(ENGINES_DIR, { recursive: true });
+    }
+    private migrateLegacyEnginesFile(): void {
+        if (fs.existsSync(ENGINES_FILE) || !fs.existsSync(LEGACY_ENGINES_FILE)) {
+            return;
+        }
+        this.ensureStorageDirectory();
+        fs.copyFileSync(LEGACY_ENGINES_FILE, ENGINES_FILE);
+        console.log(`Migrated engine config to ${ENGINES_FILE}`);
+    }
     private loadEngines(): void {
         try {
+            this.migrateLegacyEnginesFile();
+
             if (fs.existsSync(ENGINES_FILE)) {
                 const data = fs.readFileSync(ENGINES_FILE, 'utf-8');
                 this.engines = JSON.parse(data);
@@ -23,22 +53,23 @@ export class EngineManager {
             }
         }
         catch (err) {
-            console.error('Failed to load engines.json:', err);
+            console.error(`Failed to load engine config from ${ENGINES_FILE}:`, err);
             this.engines = [];
         }
     }
     private saveEngines(): void {
         try {
+            this.ensureStorageDirectory();
             fs.writeFileSync(ENGINES_FILE, JSON.stringify(this.engines, null, 2));
         }
         catch (err) {
-            console.error('Failed to save engines.json:', err);
+            console.error(`Failed to save engine config to ${ENGINES_FILE}:`, err);
         }
     }
     getEngines(): EngineConfig[] {
         return [...this.engines];
     }
-    async addEngine(engineConfig: {
+    private async validateEngineConfig(engineConfig: {
         name: string;
         path: string;
         weightsConfig?: {
@@ -48,9 +79,6 @@ export class EngineManager {
     }): Promise<EngineConfig> {
         if (!fs.existsSync(engineConfig.path)) {
             throw new Error(`Engine executable not found at: ${engineConfig.path}`);
-        }
-        if (this.engines.some(e => e.name === engineConfig.name)) {
-            throw new Error(`Engine with name "${engineConfig.name}" already exists`);
         }
         if (engineConfig.weightsConfig && !fs.existsSync(engineConfig.weightsConfig.weightsFile)) {
             throw new Error(`Weights file not found at: ${engineConfig.weightsConfig.weightsFile}`);
@@ -77,12 +105,50 @@ export class EngineManager {
                 await testEngine.waitReady(3000);
             }
             testEngine.quit();
+            return config;
         }
         catch (err) {
             testEngine.quit();
             throw new Error(`Failed to validate UCI engine: ${(err as Error).message}`);
         }
+    }
+    async addEngine(engineConfig: {
+        name: string;
+        path: string;
+        weightsConfig?: {
+            weightsFile: string;
+            nodes: number;
+        };
+    }): Promise<EngineConfig> {
+        if (this.engines.some(e => e.name === engineConfig.name)) {
+            throw new Error(`Engine with name "${engineConfig.name}" already exists`);
+        }
+        const config = await this.validateEngineConfig(engineConfig);
         this.engines.push(config);
+        this.saveEngines();
+        return config;
+    }
+    async updateEngine(oldName: string, engineConfig: {
+        name: string;
+        path: string;
+        weightsConfig?: {
+            weightsFile: string;
+            nodes: number;
+        };
+    }): Promise<EngineConfig> {
+        const index = this.engines.findIndex(e => e.name === oldName);
+        if (index === -1) {
+            throw new Error(`Engine "${oldName}" not found`);
+        }
+        if (this.engines.some(e => e.name === engineConfig.name && e.name !== oldName)) {
+            throw new Error(`Engine with name "${engineConfig.name}" already exists`);
+        }
+        const config = await this.validateEngineConfig(engineConfig);
+        this.stopEngine(oldName);
+        if (config.name !== oldName) {
+            this.stopEngine(config.name);
+        }
+        this.engines[index] = config;
         this.saveEngines();
         return config;
     }
