@@ -73,6 +73,7 @@ export class UCIEngine extends EventEmitter {
             try {
                 this.process = spawn(this.config.path, [], {
                     stdio: ['pipe', 'pipe', 'pipe'],
+                    windowsHide: process.platform === 'win32',
                 });
                 this.process.stdout?.on('data', (data: Buffer) => {
                     this.buffer += data.toString();

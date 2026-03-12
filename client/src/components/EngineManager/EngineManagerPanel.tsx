@@ -14,8 +14,27 @@ interface EngineConfig {
     nodes?: number;
 }
 
+function isWindowsRuntime() {
+    const hasNavigator = typeof navigator !== 'undefined';
+
+    if (typeof window === 'undefined') {
+        return hasNavigator ? navigator.platform.toLowerCase().includes('win') : false;
+    }
+
+    const runtimeWindow = window as any;
+    if (typeof runtimeWindow.NL_OS === 'string') {
+        return runtimeWindow.NL_OS === 'Windows';
+    }
+
+    return hasNavigator ? navigator.platform.toLowerCase().includes('win') : false;
+}
+
 export default function EngineManagerPanel() {
     const { emit, on } = useSocket();
+    const windowsRuntime = isWindowsRuntime();
+    const executableAccept = windowsRuntime ? ['.exe'] : [];
+    const executablePlaceholder = windowsRuntime ? 'e.g., C:\\engines\\stockfish.exe' : 'e.g., /usr/local/bin/stockfish';
+    const weightsPlaceholder = windowsRuntime ? 'e.g., C:\\engines\\maia-1500.pb.gz' : 'e.g., /opt/engines/maia-1500.pb.gz';
     const [engines, setEngines] = useState<EngineConfig[]>([]);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingEngine, setEditingEngine] = useState<EngineConfig | null>(null);
@@ -348,7 +367,7 @@ export default function EngineManagerPanel() {
 
                     <TextField
                         label="Executable Path"
-                        placeholder="e.g., C:\\engines\\lc0.exe"
+                        placeholder={executablePlaceholder}
                         fullWidth
                         value={newPath}
                         onChange={(e) => setNewPath(e.target.value)}
@@ -364,7 +383,7 @@ export default function EngineManagerPanel() {
                                                 onClick={() =>
                                                     openFileBrowser({
                                                         title: 'Select Engine Executable',
-                                                        accept: ['.exe'],
+                                                        accept: executableAccept,
                                                         onSelect: setNewPath,
                                                     })
                                                 }
@@ -384,7 +403,7 @@ export default function EngineManagerPanel() {
                         <>
                             <TextField
                                 label="Weights File Path"
-                                placeholder="e.g., C:\\engines\\maia-1500.pb.gz"
+                                placeholder={weightsPlaceholder}
                                 fullWidth
                                 value={weightsFilePath}
                                 onChange={(e) => setWeightsFilePath(e.target.value)}

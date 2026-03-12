@@ -23,6 +23,51 @@ interface Props {
     onSelect: (fullPath: string) => void;
     onClose: () => void;
 }
+
+function isWindowsPath(value: string): boolean {
+    return /^[A-Za-z]:[\\/]/.test(value);
+}
+
+function normalizePath(value: string): string {
+    if (!value) {
+        return '';
+    }
+
+    if (isWindowsPath(value)) {
+        const normalized = value.replace(/\//g, '\\').replace(/\\+$/, '');
+        const withRoot = normalized.length === 2 && /^[A-Za-z]:$/.test(normalized) ? `${normalized}\\` : normalized;
+        return withRoot.toLowerCase();
+    }
+
+    const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '');
+    return normalized || '/';
+}
+
+function isSameOrChildPath(currentPath: string, candidatePath: string): boolean {
+    const normalizedCurrent = normalizePath(currentPath);
+    const normalizedCandidate = normalizePath(candidatePath);
+
+    if (!normalizedCurrent || !normalizedCandidate) {
+        return normalizedCurrent === normalizedCandidate;
+    }
+
+    if (normalizedCurrent === normalizedCandidate) {
+        return true;
+    }
+
+    if (isWindowsPath(candidatePath)) {
+        const prefix = normalizedCandidate.endsWith('\\') ? normalizedCandidate : `${normalizedCandidate}\\`;
+        return normalizedCurrent.startsWith(prefix);
+    }
+
+    if (normalizedCandidate === '/') {
+        return normalizedCurrent.startsWith('/');
+    }
+
+    const prefix = normalizedCandidate.endsWith('/') ? normalizedCandidate : `${normalizedCandidate}/`;
+    return normalizedCurrent.startsWith(prefix);
+}
+
 function getBreadcrumbs(currentPath: string): Array<{
     label: string;
     fullPath: string;
@@ -30,25 +75,47 @@ function getBreadcrumbs(currentPath: string): Array<{
     if (!currentPath) {
         return [{ label: 'Computer', fullPath: '' }];
     }
-    const normalized = currentPath.replace(/\//g, '\\');
-    const driveMatch = normalized.match(/^[A-Za-z]:\\/);
-    if (!driveMatch) {
-        return [{ label: currentPath, fullPath: currentPath }];
+
+    if (isWindowsPath(currentPath)) {
+        const normalized = currentPath.replace(/\//g, '\\');
+        const driveMatch = normalized.match(/^[A-Za-z]:\\/);
+        if (!driveMatch) {
+            return [{ label: currentPath, fullPath: currentPath }];
+        }
+
+        const drive = driveMatch[0];
+        const remainder = normalized.slice(drive.length).split('\\').filter(Boolean);
+        const crumbs: Array<{
+            label: string;
+            fullPath: string;
+        }> = [
+            { label: 'Computer', fullPath: '' },
+            { label: drive.replace('\\', ''), fullPath: drive },
+        ];
+        let running = drive;
+        for (const part of remainder) {
+            running = `${running}${part}\\`;
+            crumbs.push({ label: part, fullPath: running });
+        }
+        return crumbs;
     }
-    const drive = driveMatch[0];
-    const remainder = normalized.slice(drive.length).split('\\').filter(Boolean);
+
+    const normalized = currentPath.replace(/\\/g, '/');
+    const parts = normalized.split('/').filter(Boolean);
     const crumbs: Array<{
         label: string;
         fullPath: string;
     }> = [
         { label: 'Computer', fullPath: '' },
-        { label: drive.replace('\\', ''), fullPath: drive },
+        { label: '/', fullPath: '/' },
     ];
-    let running = drive;
-    for (const part of remainder) {
-        running = `${running}${part}\\`;
+
+    let running = '';
+    for (const part of parts) {
+        running = `${running}/${part}`;
         crumbs.push({ label: part, fullPath: running });
     }
+
     return crumbs;
 }
 export default function FileBrowserDialog({ open, title = 'Browse Files', accept = [], onSelect, onClose }: Props) {
@@ -123,8 +190,11 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
     const breadcrumbs = useMemo(() => getBreadcrumbs(result?.current || ''), [result?.current]);
     const activeFilterLabel = accept.length > 0 ? accept.join(', ') : 'All files';
     const currentPath = result?.current || '';
+
     const getPlaceIcon = (name: string) => {
         switch (name.toLowerCase()) {
+            case 'home':
+                return <ComputerIcon fontSize="small" sx={{ color: 'primary.main' }}/>;
             case 'desktop':
                 return <DesktopIcon fontSize="small" sx={{ color: 'primary.main' }}/>;
             case 'documents':
@@ -158,7 +228,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                     {title}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-                    Explorer-style picker inside the app window.
+                    Browse local files inside the app window.
                 </Typography>
             </DialogTitle>
 
@@ -240,7 +310,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                                 </ListItemIcon>
                                 <ListItemText primary="Computer" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}/>
                             </ListItemButton>
-                            {places.map((place) => (<ListItemButton key={place.fullPath} selected={currentPath === place.fullPath || currentPath.startsWith(`${place.fullPath}\\`)} onClick={() => navigate(place.fullPath)} disableRipple>
+                            {places.map((place) => (<ListItemButton key={place.fullPath} selected={isSameOrChildPath(currentPath, place.fullPath)} onClick={() => navigate(place.fullPath)} disableRipple>
                                     <ListItemIcon sx={{ minWidth: 34 }}>
                                         {getPlaceIcon(place.name)}
                                     </ListItemIcon>

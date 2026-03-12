@@ -136,6 +136,7 @@ Mimu Chess is built around a few practical ideas:
 - Engine-focused: the UI is centered on real UCI workflows, not online play.
 - Reviewable: games should be easy to replay, export, and analyze later.
 - Desktop-friendly: engine path management and file-backed history should work cleanly outside the browser.
+- Cross-platform: desktop engine and file workflows should work on Windows, macOS, and Linux.
 
 ## Contributing
 

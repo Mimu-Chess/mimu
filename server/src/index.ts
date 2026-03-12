@@ -16,9 +16,11 @@ import { AnalysisManager } from './analysis/AnalysisManager.js';
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 function toPowerShellString(value: string): string {
     return `'${value.replace(/'/g, "''")}'`;
 }
+
 function buildWindowsDialogFilter(accept: string[]): string {
     const cleaned = accept
         .map((ext) => ext.trim())
@@ -50,7 +52,7 @@ function openWindowsFileDialog(opts: {
     ].join('; ');
     return new Promise((resolve, reject) => {
         const ps = spawn('powershell.exe', ['-NoProfile', '-STA', '-Command', script], {
-            windowsHide: false,
+            windowsHide: true,
         });
         let stdout = '';
         let stderr = '';
@@ -71,9 +73,88 @@ function openWindowsFileDialog(opts: {
         });
     });
 }
+
+function listDirectoryChildren(basePath: string): Array<{ name: string; fullPath: string; isDir: boolean }> {
+    try {
+        return fs.readdirSync(basePath)
+            .map((name) => {
+                try {
+                    const fullPath = path.join(basePath, name);
+                    return {
+                        name,
+                        fullPath,
+                        isDir: fs.statSync(fullPath).isDirectory(),
+                    };
+                }
+                catch {
+                    return null;
+                }
+            })
+            .filter((entry): entry is { name: string; fullPath: string; isDir: boolean } => entry !== null);
+    }
+    catch {
+        return [];
+    }
+}
+
+function getRootEntries() {
+    if (process.platform === 'win32') {
+        const drives = Array.from({ length: 26 }, (_, index) => `${String.fromCharCode(65 + index)}:\\`);
+        return drives
+            .filter((drive) => {
+                try {
+                    return fs.statSync(drive).isDirectory();
+                }
+                catch {
+                    return false;
+                }
+            })
+            .map((drive) => ({ name: drive.replace('\\', ''), fullPath: drive, isDir: true }));
+    }
+
+    const roots = new Map<string, { name: string; fullPath: string; isDir: boolean }>();
+    const addRoot = (fullPath: string, name: string) => {
+        try {
+            if (fs.statSync(fullPath).isDirectory()) {
+                roots.set(fullPath, { name, fullPath, isDir: true });
+            }
+        }
+        catch {
+            // Ignore missing or inaccessible locations.
+        }
+    };
+
+    addRoot('/', '/');
+    addRoot(os.homedir(), 'Home');
+
+    if (process.platform === 'darwin') {
+        addRoot('/Volumes', 'Volumes');
+        for (const entry of listDirectoryChildren('/Volumes')) {
+            if (entry.isDir) {
+                roots.set(entry.fullPath, entry);
+            }
+        }
+    }
+    else {
+        addRoot('/mnt', 'mnt');
+        addRoot('/media', 'media');
+
+        for (const mountRoot of ['/mnt', '/media']) {
+            for (const entry of listDirectoryChildren(mountRoot)) {
+                if (entry.isDir) {
+                    roots.set(entry.fullPath, entry);
+                }
+            }
+        }
+    }
+
+    return Array.from(roots.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function getQuickAccessEntries() {
     const homeDir = os.homedir();
     const candidates = [
+        { name: 'Home', fullPath: homeDir },
         { name: 'Desktop', fullPath: path.join(homeDir, 'Desktop') },
         { name: 'Documents', fullPath: path.join(homeDir, 'Documents') },
         { name: 'Downloads', fullPath: path.join(homeDir, 'Downloads') },
@@ -97,19 +178,10 @@ app.get('/api/files', (req, res) => {
     try {
         const rawPath = (req.query.path as string) || '';
         if (!rawPath) {
-            const drives = ['C:\\', 'D:\\', 'E:\\', 'F:\\'].filter((d) => {
-                try {
-                    fs.accessSync(d);
-                    return true;
-                }
-                catch {
-                    return false;
-                }
-            });
             return res.json({
                 current: '',
                 parent: null,
-                entries: drives.map((d) => ({ name: d, fullPath: d, isDir: true })),
+                entries: getRootEntries(),
             });
         }
         const resolved = path.resolve(rawPath);
