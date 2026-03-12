@@ -17,6 +17,7 @@
         "install:all": "bun install"
     },
     "devDependencies": {
+        "@neutralinojs/neu": "^11.7.0",
         "concurrently": "^8.2.2"
     },
     "dependencies": {

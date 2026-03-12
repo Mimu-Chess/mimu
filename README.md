@@ -104,7 +104,7 @@ Important files and folders:
 
 - [Bun](https://bun.sh/)
 - At least one local UCI engine executable to use the chess features
-- Neutralino CLI if you want to run desktop-mode scripts
+- `bun install` to fetch the project-local Neutralino CLI used by desktop-mode scripts
 
 ## Getting Started
 

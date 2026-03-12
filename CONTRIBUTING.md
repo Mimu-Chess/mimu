@@ -8,7 +8,7 @@ Requirements:
 
 - [Bun](https://bun.sh/)
 - a local UCI engine executable for testing gameplay and analysis
-- Neutralino CLI if you want to run desktop-mode workflows
+- `bun install` to fetch the project-local Neutralino CLI used by desktop-mode workflows
 
 Install dependencies from the repo root:
 
@@ -138,5 +138,5 @@ If you changed end-to-end flows such as gameplay, history, analysis, or engine m
 ## Notes
 
 - The backend includes Windows-specific file picker support for engine and weights selection in desktop usage.
-- Desktop scripts expect the `neu` CLI to be installed and available on `PATH`.
+- Desktop scripts use the project-local `@neutralinojs/neu` CLI installed via `bun install`.
 - Browser dev mode is useful for UI iteration, but engine workflows should also be verified in desktop mode when relevant.
