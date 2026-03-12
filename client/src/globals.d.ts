@@ -7,6 +7,6 @@ declare global {
         NL_OS: 'Windows' | 'Linux' | 'Darwin' | 'FreeBSD' | 'Unknown';
         NL_PATH: string;
         NL_RESMODE: 'bundle' | 'directory';
-        Neutralino?: any;
+        Neutralino?: unknown;
     }
 }
