@@ -1,4 +1,5 @@
 import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,25 +13,18 @@ const packageJson = JSON.parse(await Bun.file(packageJsonPath).text());
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-const result = await Bun.build({
-    entrypoints: [path.join(clientDir, 'index.html')],
-    outdir: outDir,
-    target: 'browser',
-    minify: true,
-    splitting: true,
-    sourcemap: 'linked',
-    env: 'VITE_*',
-    define: {
-        __APP_VERSION__: JSON.stringify(packageJson.version),
-    },
+execFileSync('bun', [
+    'build',
+    './index.html',
+    '--production',
+    '--outdir=../dist',
+    '--sourcemap=linked',
+    '--env=VITE_*',
+    `--define=__APP_VERSION__=${JSON.stringify(packageJson.version)}`,
+], {
+    cwd: clientDir,
+    stdio: 'inherit',
 });
-
-if (!result.success) {
-    for (const log of result.logs) {
-        console.error(log);
-    }
-    process.exit(1);
-}
 
 if (existsSync(publicDir)) {
     cpSync(publicDir, outDir, { recursive: true, force: true });

@@ -7,7 +7,7 @@
   "defaultMode": "window",
   "port": 32110,
   "documentRoot": "/dist/",
-  "url": "/",
+  "url": "http://127.0.0.1:32110/index.html",
   "enableServer": true,
   "enableNativeAPI": true,
   "tokenSecurity": "one-time",
@@ -62,7 +62,7 @@
       ]
     },
     "cloud": {
-      "url": "/dist/#cloud",
+      "url": "http://127.0.0.1:32110/index.html#cloud",
       "nativeAllowList": [
         "app.*"
       ]
