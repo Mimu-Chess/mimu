@@ -11,6 +11,16 @@ const outputName = process.platform === 'win32' ? 'mimu-chess-server.exe' : 'mim
 const outputPath = path.join(outputDir, outputName);
 const windowsIconPath = path.join(projectRoot, 'dist', 'MIMU.ico');
 
+function runObjcopyWindowsSubsystem(executablePath) {
+    if (process.platform !== 'win32') {
+        return;
+    }
+
+    execFileSync('objcopy', ['--subsystem', 'windows', executablePath], {
+        stdio: 'inherit',
+    });
+}
+
 if (!fs.existsSync(outputDir)) {
     throw new Error(`Neutralino build output directory not found: ${outputDir}`);
 }
@@ -31,6 +41,8 @@ execFileSync('bun', [
 ], {
     stdio: 'inherit',
 });
+
+runObjcopyWindowsSubsystem(outputPath);
 
 console.log(`Compiled desktop backend to ${outputPath}`);
 
@@ -66,6 +78,8 @@ if (process.platform === 'win32') {
     ], {
         stdio: 'inherit',
     });
+
+    runObjcopyWindowsSubsystem(launcherOutputPath);
 
     console.log(`Built desktop launcher at ${launcherOutputPath}`);
 }

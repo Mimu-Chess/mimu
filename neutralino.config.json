@@ -1,7 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
-  "applicationId": "js.neutralino.sample",
+  "applicationId": "com.mimuchess.desktop",
   "version": "1.0.0",
+  "applicationName": "Mimu Chess",
+  "applicationIcon": "dist/MIMU.png",
   "defaultMode": "window",
   "port": 32110,
   "documentRoot": "/dist/",
@@ -16,6 +18,7 @@
   "nativeAllowList": [
     "app.*",
     "os.*",
+    "window.setIcon",
     "debug.log",
     "storage.*",
     "filesystem.*"
@@ -42,7 +45,7 @@
       "center": true,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/dist/MIMU.ico",
+      "icon": "/dist/MIMU.png",
       "enableInspector": false,
       "borderless": false,
       "maximize": false,

@@ -59,6 +59,20 @@ async function waitForNeutralinoReady(): Promise<void> {
     return neutralinoReadyPromise;
 }
 
+async function ensureDesktopWindowIcon(): Promise<void> {
+    const neutralino = getNeutralino();
+    if (!neutralino?.window?.setIcon) {
+        return;
+    }
+
+    try {
+        await neutralino.window.setIcon('/dist/MIMU.png');
+    }
+    catch (error) {
+        console.error('Failed to apply desktop window icon:', error);
+    }
+}
+
 async function resolveDesktopServerBinaryPath(): Promise<string | null> {
     const neutralino = getNeutralino();
     const runtimeWindow = window as any;
@@ -250,7 +264,7 @@ function AppContent() {
 
         if (neutralino) {
             neutralino.init();
-            void waitForNeutralinoReady();
+            void waitForNeutralinoReady().then(() => ensureDesktopWindowIcon());
             void initializeDesktopSettings({ onboardingCompleted: false });
             void neutralino.events.on('windowClose', handleWindowCloseEvent);
             void neutralino.events.on('spawnedProcess', handleSpawnedProcess);
