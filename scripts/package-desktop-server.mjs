@@ -11,6 +11,7 @@ const executableExtension = process.platform === 'win32' ? '.exe' : '';
 const outputName = `mimu-chess-server${executableExtension}`;
 const outputPath = path.join(outputDir, outputName);
 const windowsIconPath = path.join(projectRoot, 'dist', 'MIMU.ico');
+const shouldBuildLauncher = process.platform === 'win32' || process.platform === 'darwin';
 
 function buildCompileArgs(entrypoint, outfile, windowsMetadata) {
     const args = [
@@ -98,6 +99,11 @@ execFileSync('bun', buildCompileArgs(
 runObjcopyWindowsSubsystem(outputPath);
 
 console.log(`Compiled desktop backend to ${outputPath}`);
+
+if (!shouldBuildLauncher) {
+    console.log(`Skipping desktop launcher generation on ${process.platform}.`);
+    process.exit(0);
+}
 
 const packagedClientExecutable = resolveHostClientBinary();
 const packagedClientPath = path.join(outputDir, packagedClientExecutable);
