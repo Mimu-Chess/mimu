@@ -5,14 +5,7 @@ Mimu Chess is a local-first chess desktop app for playing against UCI engines, r
 It is built for people who want their engines, PGNs, and configuration to stay on their machine.
 
 ## Screenshots
-
-Screenshot placeholders:
-
-- `docs/screenshots/play-vs-ai.png`
-- `docs/screenshots/engine-matches.png`
-- `docs/screenshots/game-analysis.png`
-- `docs/screenshots/engine-manager.png`
-- `docs/screenshots/game-history.png`
+son im crine
 
 ## What It Does
 
