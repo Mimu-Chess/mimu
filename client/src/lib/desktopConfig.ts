@@ -1,5 +1,6 @@
 export type AppColorMode = 'dark' | 'light';
 export type AppLanguage = 'en' | 'es' | 'zh-CN';
+export type AppPieceSetId = 'studio' | 'glass' | 'wire';
 export type AppViewId = 'play' | 'match' | 'analysis' | 'engines' | 'settings';
 
 type DesktopSettings = {
@@ -10,6 +11,8 @@ type DesktopSettings = {
     language?: AppLanguage;
     animationsEnabled?: boolean;
     showBoardCoordinates?: boolean;
+    pieceSet?: AppPieceSetId;
+    moveSoundsEnabled?: boolean;
     compactSidebar?: boolean;
     rememberLastView?: boolean;
     lastView?: AppViewId;
@@ -23,6 +26,8 @@ export const DEFAULT_DESKTOP_SETTINGS: Required<DesktopSettings> = {
     language: 'en',
     animationsEnabled: true,
     showBoardCoordinates: true,
+    pieceSet: 'studio',
+    moveSoundsEnabled: true,
     compactSidebar: false,
     rememberLastView: true,
     lastView: 'play',
@@ -102,6 +107,14 @@ function sanitizeDesktopSettings(value: unknown): DesktopSettings {
 
     if (typeof raw.showBoardCoordinates === 'boolean') {
         next.showBoardCoordinates = raw.showBoardCoordinates;
+    }
+
+    if (raw.pieceSet === 'studio' || raw.pieceSet === 'glass' || raw.pieceSet === 'wire') {
+        next.pieceSet = raw.pieceSet;
+    }
+
+    if (typeof raw.moveSoundsEnabled === 'boolean') {
+        next.moveSoundsEnabled = raw.moveSoundsEnabled;
     }
 
     if (typeof raw.compactSidebar === 'boolean') {

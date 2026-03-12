@@ -26,6 +26,7 @@ import {
 import { useAppTheme } from '../../context/ThemeContext';
 import { useAppSettings } from '../../context/SettingsContext';
 import { CustomThemeDialog } from '../Theme/CustomThemeDialog';
+import { PIECE_SET_IDS } from '../Chessboard/pieceSets';
 
 function SectionHeader({
     icon,
@@ -107,18 +108,27 @@ export default function SettingsPage() {
         languageOptions,
         animationsEnabled,
         showBoardCoordinates,
+        pieceSet,
+        moveSoundsEnabled,
         compactSidebar,
         rememberLastView,
         setColorMode,
         setLanguage,
         setAnimationsEnabled,
         setShowBoardCoordinates,
+        setPieceSet,
+        setMoveSoundsEnabled,
         setCompactSidebar,
         setRememberLastView,
         strings,
     } = useAppSettings();
     const [customThemeDialogOpen, setCustomThemeDialogOpen] = useState(false);
     const settingsText = strings.settings;
+    const pieceSetLabels = {
+        studio: settingsText.pieceSetStudio,
+        glass: settingsText.pieceSetGlass,
+        wire: settingsText.pieceSetWire,
+    };
 
     return (
         <Box>
@@ -181,6 +191,36 @@ export default function SettingsPage() {
                                 icon={<MotionIcon sx={{ fontSize: 18 }} />}
                                 title={settingsText.boardTitle}
                                 subtitle={settingsText.boardSubtitle}
+                            />
+                            <SettingRow
+                                label={settingsText.pieceSetLabel}
+                                description={settingsText.pieceSetDescription}
+                                control={(
+                                    <FormControl size="small" sx={{ minWidth: 190 }}>
+                                        <InputLabel>{settingsText.pieceSetLabel}</InputLabel>
+                                        <Select
+                                            value={pieceSet}
+                                            label={settingsText.pieceSetLabel}
+                                            onChange={(event) => setPieceSet(event.target.value as typeof pieceSet)}
+                                        >
+                                            {PIECE_SET_IDS.map((option) => (
+                                                <MenuItem key={option} value={option}>
+                                                    {pieceSetLabels[option]}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            />
+                            <SettingRow
+                                label={settingsText.soundsLabel}
+                                description={settingsText.soundsDescription}
+                                control={(
+                                    <Switch
+                                        checked={moveSoundsEnabled}
+                                        onChange={(event) => setMoveSoundsEnabled(event.target.checked)}
+                                    />
+                                )}
                             />
                             <SettingRow
                                 label={settingsText.animationsLabel}

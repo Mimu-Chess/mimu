@@ -6,7 +6,7 @@ import {
     readStoredDesktopSettingsSync,
     writeDesktopSettingsPatch,
 } from '../lib/desktopConfig';
-import type { AppColorMode, AppLanguage, AppViewId } from '../lib/desktopConfig';
+import type { AppColorMode, AppLanguage, AppPieceSetId, AppViewId } from '../lib/desktopConfig';
 import { APP_STRINGS, LANGUAGE_OPTIONS } from '../i18n';
 import type { AppStrings } from '../i18n';
 
@@ -15,6 +15,8 @@ interface SettingsState {
     language: AppLanguage;
     animationsEnabled: boolean;
     showBoardCoordinates: boolean;
+    pieceSet: AppPieceSetId;
+    moveSoundsEnabled: boolean;
     compactSidebar: boolean;
     rememberLastView: boolean;
     lastView: AppViewId;
@@ -28,6 +30,8 @@ interface SettingsContextType extends SettingsState {
     setLanguage: (value: AppLanguage) => void;
     setAnimationsEnabled: (value: boolean) => void;
     setShowBoardCoordinates: (value: boolean) => void;
+    setPieceSet: (value: AppPieceSetId) => void;
+    setMoveSoundsEnabled: (value: boolean) => void;
     setCompactSidebar: (value: boolean) => void;
     setRememberLastView: (value: boolean) => void;
     setLastView: (value: AppViewId) => void;
@@ -40,6 +44,8 @@ const DEFAULT_SETTINGS_STATE: SettingsState = {
     language: storedSettings.language ?? DEFAULT_DESKTOP_SETTINGS.language,
     animationsEnabled: storedSettings.animationsEnabled ?? DEFAULT_DESKTOP_SETTINGS.animationsEnabled,
     showBoardCoordinates: storedSettings.showBoardCoordinates ?? DEFAULT_DESKTOP_SETTINGS.showBoardCoordinates,
+    pieceSet: storedSettings.pieceSet ?? DEFAULT_DESKTOP_SETTINGS.pieceSet,
+    moveSoundsEnabled: storedSettings.moveSoundsEnabled ?? DEFAULT_DESKTOP_SETTINGS.moveSoundsEnabled,
     compactSidebar: storedSettings.compactSidebar ?? DEFAULT_DESKTOP_SETTINGS.compactSidebar,
     rememberLastView: storedSettings.rememberLastView ?? DEFAULT_DESKTOP_SETTINGS.rememberLastView,
     lastView: storedSettings.lastView ?? DEFAULT_DESKTOP_SETTINGS.lastView,
@@ -82,6 +88,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                 language: stored.language ?? DEFAULT_SETTINGS_STATE.language,
                 animationsEnabled: stored.animationsEnabled ?? DEFAULT_SETTINGS_STATE.animationsEnabled,
                 showBoardCoordinates: stored.showBoardCoordinates ?? DEFAULT_SETTINGS_STATE.showBoardCoordinates,
+                pieceSet: stored.pieceSet ?? DEFAULT_SETTINGS_STATE.pieceSet,
+                moveSoundsEnabled: stored.moveSoundsEnabled ?? DEFAULT_SETTINGS_STATE.moveSoundsEnabled,
                 compactSidebar: stored.compactSidebar ?? DEFAULT_SETTINGS_STATE.compactSidebar,
                 rememberLastView: stored.rememberLastView ?? DEFAULT_SETTINGS_STATE.rememberLastView,
                 lastView: stored.lastView ?? DEFAULT_SETTINGS_STATE.lastView,
@@ -120,6 +128,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setLanguage: (value) => patchSettings({ language: value }),
         setAnimationsEnabled: (value) => patchSettings({ animationsEnabled: value }),
         setShowBoardCoordinates: (value) => patchSettings({ showBoardCoordinates: value }),
+        setPieceSet: (value) => patchSettings({ pieceSet: value }),
+        setMoveSoundsEnabled: (value) => patchSettings({ moveSoundsEnabled: value }),
         setCompactSidebar: (value) => patchSettings({ compactSidebar: value }),
         setRememberLastView: (value) => patchSettings({ rememberLastView: value }),
         setLastView: (value) => patchSettings({ lastView: value }),

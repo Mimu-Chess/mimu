@@ -35,6 +35,7 @@ const zhCN: AppStrings = {
         allFiles: '所有文件',
     },
     settings: {
+        ...en.settings,
         title: '设置',
         subtitle: '调整外观、语言和基础应用行为。',
         appearanceTitle: '外观',

@@ -3,6 +3,8 @@ import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSettings } from '../../context/SettingsContext';
+import { PIECE_SET_RENDERERS } from './pieceSets';
+import { playMoveSound, type MoveSoundKind } from '../../lib/moveSounds';
 export interface BoardTheme {
     name: string;
     light: string;
@@ -26,6 +28,43 @@ const DEFAULT_BOARD_THEME: BoardTheme = {
 const STANDARD_START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const OPTIMISTIC_RESET_MS = 1400;
 const SQUARE_PRESS_MS = 170;
+
+function classifyMoveSound(previousFen: string, currentFen: string, lastMove: { from: string; to: string } | null): MoveSoundKind {
+    if (!lastMove) {
+        return 'move';
+    }
+
+    try {
+        const previousPosition = new Chess(previousFen);
+        const currentPosition = new Chess(currentFen);
+        const movedPiece = previousPosition.get(lastMove.from as any);
+        const previousTargetPiece = previousPosition.get(lastMove.to as any);
+        const currentTargetPiece = currentPosition.get(lastMove.to as any);
+        const fileDistance = Math.abs(lastMove.from.charCodeAt(0) - lastMove.to.charCodeAt(0));
+
+        if (movedPiece?.type === 'k' && fileDistance === 2) {
+            return 'castle';
+        }
+
+        if (movedPiece?.type === 'p' && currentTargetPiece && currentTargetPiece.type !== 'p') {
+            return currentPosition.isCheck() ? 'check' : 'promote';
+        }
+
+        if (previousTargetPiece || (movedPiece?.type === 'p' && lastMove.from[0] !== lastMove.to[0])) {
+            return currentPosition.isCheck() ? 'check' : 'capture';
+        }
+
+        if (currentPosition.isCheck()) {
+            return 'check';
+        }
+    }
+    catch {
+        return 'move';
+    }
+
+    return 'move';
+}
+
 interface ChessboardPanelProps {
     fen: string;
     onMove?: (from: string, to: string, promotion?: string) => boolean | void;
@@ -44,7 +83,7 @@ interface ChessboardPanelProps {
 }
 export default function ChessboardPanel({ fen, onMove, orientation = 'white', interactive = true, lastMove = null, arrows = [], boardTheme = DEFAULT_BOARD_THEME, }: ChessboardPanelProps) {
     const theme = useTheme();
-    const { animationsEnabled, showBoardCoordinates } = useAppSettings();
+    const { animationsEnabled, moveSoundsEnabled, pieceSet, showBoardCoordinates } = useAppSettings();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
@@ -58,6 +97,7 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
     const pressIdRef = useRef(0);
     const lastRippleAtRef = useRef<Record<string, number>>({});
     const lastPressAtRef = useRef<Record<string, number>>({});
+    const previousSoundStateRef = useRef<{ fen: string; moveKey: string | null } | null>(null);
     const normalizedFen = useMemo(() => {
         if (!fen || fen === 'start' || fen === 'startpos') {
             return STANDARD_START_FEN;
@@ -288,7 +328,21 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
         endSquare: arrow.to,
         color: arrow.color || 'rgba(56, 189, 248, 0.88)',
     })), [arrows]);
+    const customPieces = useMemo(() => PIECE_SET_RENDERERS[pieceSet] ?? PIECE_SET_RENDERERS.studio, [pieceSet]);
     const legalMoveSet = useMemo(() => new Set(legalMoves), [legalMoves]);
+
+    useEffect(() => {
+        const moveKey = lastMove ? `${lastMove.from}-${lastMove.to}` : null;
+        const previousState = previousSoundStateRef.current;
+        previousSoundStateRef.current = { fen: normalizedFen, moveKey };
+
+        if (!moveSoundsEnabled || !previousState || previousState.fen === normalizedFen) {
+            return;
+        }
+
+        void playMoveSound(classifyMoveSound(previousState.fen, normalizedFen, lastMove));
+    }, [lastMove, moveSoundsEnabled, normalizedFen]);
+
     const squareRenderer = useCallback(({ piece, square, children }: {
         piece: any;
         square: string;
@@ -374,6 +428,7 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
             dropSquareStyle: { boxShadow: `inset 0 0 1px 5px ${boardTheme.selected}` },
             showAnimations: animationsEnabled,
             animationDurationInMs: animationsEnabled ? 48 : 0,
+            pieces: customPieces,
             draggingPieceStyle: { cursor: 'grabbing', filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45))' },
             draggingPieceGhostStyle: { opacity: '0.45' },
             allowDragging: canInteract,
