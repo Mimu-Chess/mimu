@@ -3,6 +3,30 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 
+async function ensureNeutralinoClient(): Promise<void> {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const runtimeWindow = window as typeof window & {
+        NL_PORT?: number | string;
+        Neutralino?: unknown;
+    };
+
+    if (!runtimeWindow.NL_PORT || runtimeWindow.Neutralino) {
+        return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = './js/neutralino.js';
+        script.async = false;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load Neutralino client library.'));
+        document.head.appendChild(script);
+    });
+}
+
 function showStartupError(error: unknown) {
     const message = error instanceof Error
         ? `${error.name}: ${error.message}\n${error.stack || ''}`
@@ -34,13 +58,16 @@ window.addEventListener('unhandledrejection', (event) => {
     showStartupError(event.reason);
 });
 
-try {
+async function startApp() {
+    await ensureNeutralinoClient();
+
     createRoot(document.getElementById('root')!).render(
         <StrictMode>
             <App />
         </StrictMode>,
     );
 }
-catch (error) {
+
+void startApp().catch((error) => {
     showStartupError(error);
-}
+});

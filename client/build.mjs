@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,4 +28,19 @@ execFileSync('bun', [
 
 if (existsSync(publicDir)) {
     cpSync(publicDir, outDir, { recursive: true, force: true });
+}
+
+const builtIndexHtmlPath = path.join(outDir, 'index.html');
+const builtIndexHtml = readFileSync(builtIndexHtmlPath, 'utf8');
+const neutralinoBootstrap = `<script>
+if (window.NL_PORT) {
+  document.write('<script src="./js/neutralino.js"><\\/script>');
+}
+</script>`;
+
+if (!builtIndexHtml.includes('./js/neutralino.js')) {
+    writeFileSync(
+        builtIndexHtmlPath,
+        builtIndexHtml.replace('<script type="module"', `${neutralinoBootstrap}<script type="module"`),
+    );
 }

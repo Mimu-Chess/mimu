@@ -507,7 +507,6 @@ export default function PlayVsAI() {
                         />
                     ) : (
                         <Typography variant="caption" sx={{ mt: 1.25, display: 'block', color: 'text.secondary', textAlign: 'center' }}>
-                            Configure a game on the right to start playing. Your saved history is available in the History tab.
                         </Typography>
                     )}
                 </Box>

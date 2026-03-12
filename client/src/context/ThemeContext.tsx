@@ -5,6 +5,8 @@ import type { Theme } from '@mui/material/styles';
 import { initializeDesktopSettings, writeDesktopSettingsPatch } from '../lib/desktopConfig';
 
 const THEME_STORAGE_KEY = 'mimu-theme';
+const CUSTOM_THEME_COLOR_STORAGE_KEY = 'mimu-custom-theme-color';
+const DEFAULT_CUSTOM_THEME_COLOR = '#7c4dff';
 export interface AppTheme {
     id: string;
     name: string;
@@ -146,12 +148,90 @@ export const APP_THEMES: AppTheme[] = [
 interface ThemeContextType {
     appTheme: AppTheme;
     setThemeById: (id: string) => void;
+    setCustomThemeColor: (color: string) => void;
+    customThemeColor: string;
     muiTheme: Theme;
     themes: AppTheme[];
 }
 const ThemeContext = createContext<ThemeContextType>(null!);
 export function useAppTheme() {
     return useContext(ThemeContext);
+}
+function clamp(value: number, min: number, max: number) {
+    return Math.min(Math.max(value, min), max);
+}
+function normalizeHexColor(value: string): string {
+    const match = value.trim().match(/^#?([0-9a-fA-F]{6})$/);
+    return match ? `#${match[1].toLowerCase()}` : DEFAULT_CUSTOM_THEME_COLOR;
+}
+function hexToRgb(value: string) {
+    const color = normalizeHexColor(value);
+    return {
+        r: parseInt(color.slice(1, 3), 16),
+        g: parseInt(color.slice(3, 5), 16),
+        b: parseInt(color.slice(5, 7), 16),
+    };
+}
+function rgbToHex(r: number, g: number, b: number) {
+    return `#${[r, g, b]
+        .map((channel) => clamp(Math.round(channel), 0, 255).toString(16).padStart(2, '0'))
+        .join('')}`;
+}
+function getRelativeLuminance(value: string) {
+    const { r, g, b } = hexToRgb(value);
+    const normalize = (channel: number) => {
+        const next = channel / 255;
+        return next <= 0.03928 ? next / 12.92 : ((next + 0.055) / 1.055) ** 2.4;
+    };
+    return (0.2126 * normalize(r)) + (0.7152 * normalize(g)) + (0.0722 * normalize(b));
+}
+function mixColors(left: string, right: string, weight: number) {
+    const w = clamp(weight, 0, 1);
+    const a = hexToRgb(left);
+    const b = hexToRgb(right);
+    return rgbToHex(
+        a.r * (1 - w) + b.r * w,
+        a.g * (1 - w) + b.g * w,
+        a.b * (1 - w) + b.b * w,
+    );
+}
+function shiftRgb(value: string, amount: number) {
+    const { r, g, b } = hexToRgb(value);
+    return rgbToHex(r + amount, g + amount, b + amount);
+}
+function normalizeAccentColor(value: string) {
+    const color = normalizeHexColor(value);
+    const luminance = getRelativeLuminance(color);
+    if (luminance > 0.72) {
+        return mixColors(color, '#000000', 0.22);
+    }
+    if (luminance < 0.16) {
+        return mixColors(color, '#ffffff', 0.18);
+    }
+    return color;
+}
+function buildCustomTheme(color: string): AppTheme {
+    const primary = normalizeAccentColor(color);
+    const secondary = mixColors(primary, '#ffffff', 0.24);
+    const boardLight = mixColors('#f0e4d2', primary, 0.16);
+    const boardDark = mixColors('#6d5247', primary, 0.42);
+    return {
+        id: 'custom',
+        name: 'Custom',
+        boardLight,
+        boardDark,
+        highlightFrom: alpha(primary, 0.28),
+        highlightTo: alpha(primary, 0.42),
+        selected: alpha(primary, 0.54),
+        legalDot: alpha(primary, 0.26),
+        legalCapture: alpha(primary, 0.36),
+        primary,
+        secondary,
+        bgDefault: mixColors('#0b1017', primary, 0.08),
+        bgPaper: mixColors('#131923', primary, 0.09),
+        bgSidebar: mixColors('#0f141c', primary, 0.07),
+        accent: shiftRgb(primary, 18),
+    };
 }
 function buildMuiTheme(t: AppTheme): Theme {
     return createTheme({
@@ -353,6 +433,15 @@ export function ThemeProvider({ children }: {
             return 'cappuccino';
         return window.localStorage.getItem(THEME_STORAGE_KEY) || 'cappuccino';
     });
+    const [customThemeColor, setCustomThemeColorState] = useState(() => {
+        if (typeof window === 'undefined') {
+            return DEFAULT_CUSTOM_THEME_COLOR;
+        }
+        return normalizeHexColor(window.localStorage.getItem(CUSTOM_THEME_COLOR_STORAGE_KEY) || DEFAULT_CUSTOM_THEME_COLOR);
+    });
+
+    const customTheme = useMemo(() => buildCustomTheme(customThemeColor), [customThemeColor]);
+    const themes = useMemo(() => [...APP_THEMES, customTheme], [customTheme]);
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -361,15 +450,26 @@ export function ThemeProvider({ children }: {
 
         let cancelled = false;
         const localThemeId = window.localStorage.getItem(THEME_STORAGE_KEY) || 'cappuccino';
+        const localCustomThemeColor = normalizeHexColor(
+            window.localStorage.getItem(CUSTOM_THEME_COLOR_STORAGE_KEY) || DEFAULT_CUSTOM_THEME_COLOR,
+        );
 
         const loadDesktopTheme = async () => {
-            const data = await initializeDesktopSettings({ themeId: localThemeId });
+            const data = await initializeDesktopSettings({
+                themeId: localThemeId,
+                customThemeColor: localCustomThemeColor,
+            });
             if (cancelled) {
                 return;
             }
 
             const nextThemeId = data?.themeId;
-            if (nextThemeId && APP_THEMES.some((theme) => theme.id === nextThemeId)) {
+            const nextCustomThemeColor = normalizeHexColor(data?.customThemeColor || localCustomThemeColor);
+
+            window.localStorage.setItem(CUSTOM_THEME_COLOR_STORAGE_KEY, nextCustomThemeColor);
+            setCustomThemeColorState(nextCustomThemeColor);
+
+            if (nextThemeId && [...APP_THEMES.map((theme) => theme.id), 'custom'].includes(nextThemeId)) {
                 window.localStorage.setItem(THEME_STORAGE_KEY, nextThemeId);
                 setThemeId(nextThemeId);
             }
@@ -382,10 +482,10 @@ export function ThemeProvider({ children }: {
         };
     }, []);
 
-    const appTheme = useMemo(() => APP_THEMES.find((t) => t.id === themeId) || APP_THEMES[0], [themeId]);
+    const appTheme = useMemo(() => themes.find((t) => t.id === themeId) || themes[0], [themeId, themes]);
     const muiTheme = useMemo(() => buildMuiTheme(appTheme), [appTheme]);
     const setThemeById = useCallback((id: string) => {
-        const exists = APP_THEMES.some((theme) => theme.id === id);
+        const exists = [...APP_THEMES.map((theme) => theme.id), 'custom'].includes(id);
         if (!exists)
             return;
         setThemeId(id);
@@ -394,6 +494,26 @@ export function ThemeProvider({ children }: {
             void writeDesktopSettingsPatch({ themeId: id });
         }
     }, []);
-    const ctx = useMemo(() => ({ appTheme, setThemeById, muiTheme, themes: APP_THEMES }), [appTheme, muiTheme, setThemeById]);
+    const setCustomThemeColor = useCallback((color: string) => {
+        const nextColor = normalizeHexColor(color);
+        setCustomThemeColorState(nextColor);
+        setThemeId('custom');
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(CUSTOM_THEME_COLOR_STORAGE_KEY, nextColor);
+            window.localStorage.setItem(THEME_STORAGE_KEY, 'custom');
+            void writeDesktopSettingsPatch({
+                themeId: 'custom',
+                customThemeColor: nextColor,
+            });
+        }
+    }, []);
+    const ctx = useMemo(() => ({
+        appTheme,
+        setThemeById,
+        setCustomThemeColor,
+        customThemeColor,
+        muiTheme,
+        themes,
+    }), [appTheme, setThemeById, setCustomThemeColor, customThemeColor, muiTheme, themes]);
     return <ThemeContext.Provider value={ctx}>{children}</ThemeContext.Provider>;
 }

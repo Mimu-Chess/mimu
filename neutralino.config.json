@@ -18,6 +18,7 @@
   "nativeAllowList": [
     "app.*",
     "os.*",
+    "window.*",
     "window.setIcon",
     "debug.log",
     "storage.*",

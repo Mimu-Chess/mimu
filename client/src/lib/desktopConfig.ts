@@ -1,11 +1,13 @@
 type DesktopSettings = {
     themeId?: string;
     onboardingCompleted?: boolean;
+    customThemeColor?: string;
 };
 
 export const DEFAULT_DESKTOP_SETTINGS: Required<DesktopSettings> = {
     themeId: 'cappuccino',
     onboardingCompleted: false,
+    customThemeColor: '#7c4dff',
 };
 
 const LOCAL_SETTINGS_STORAGE_KEY = 'mimu-chess:desktop-settings';
@@ -62,6 +64,10 @@ function sanitizeDesktopSettings(value: unknown): DesktopSettings {
 
     if (typeof raw.onboardingCompleted === 'boolean') {
         next.onboardingCompleted = raw.onboardingCompleted;
+    }
+
+    if (typeof raw.customThemeColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw.customThemeColor)) {
+        next.customThemeColor = raw.customThemeColor;
     }
 
     return next;
