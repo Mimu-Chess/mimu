@@ -1,6 +1,9 @@
+import { isAppPieceSetId } from './pieceSetCatalog';
+import type { AppPieceSetId } from './pieceSetCatalog';
+
 export type AppColorMode = 'dark' | 'light';
 export type AppLanguage = 'en' | 'es' | 'zh-CN';
-export type AppPieceSetId = 'studio' | 'glass' | 'wire';
+export type { AppPieceSetId } from './pieceSetCatalog';
 export type AppViewId = 'play' | 'match' | 'analysis' | 'engines' | 'settings';
 
 type DesktopSettings = {
@@ -109,7 +112,7 @@ function sanitizeDesktopSettings(value: unknown): DesktopSettings {
         next.showBoardCoordinates = raw.showBoardCoordinates;
     }
 
-    if (raw.pieceSet === 'studio' || raw.pieceSet === 'glass' || raw.pieceSet === 'wire') {
+    if (isAppPieceSetId(raw.pieceSet)) {
         next.pieceSet = raw.pieceSet;
     }
 

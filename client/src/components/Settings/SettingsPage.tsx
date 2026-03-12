@@ -25,8 +25,8 @@ import {
 } from '@mui/icons-material';
 import { useAppTheme } from '../../context/ThemeContext';
 import { useAppSettings } from '../../context/SettingsContext';
+import { PIECE_SET_OPTIONS } from '../../lib/pieceSetCatalog';
 import { CustomThemeDialog } from '../Theme/CustomThemeDialog';
-import { PIECE_SET_IDS } from '../Chessboard/pieceSets';
 
 function SectionHeader({
     icon,
@@ -124,11 +124,6 @@ export default function SettingsPage() {
     } = useAppSettings();
     const [customThemeDialogOpen, setCustomThemeDialogOpen] = useState(false);
     const settingsText = strings.settings;
-    const pieceSetLabels = {
-        studio: settingsText.pieceSetStudio,
-        glass: settingsText.pieceSetGlass,
-        wire: settingsText.pieceSetWire,
-    };
 
     return (
         <Box>
@@ -203,9 +198,9 @@ export default function SettingsPage() {
                                             label={settingsText.pieceSetLabel}
                                             onChange={(event) => setPieceSet(event.target.value as typeof pieceSet)}
                                         >
-                                            {PIECE_SET_IDS.map((option) => (
-                                                <MenuItem key={option} value={option}>
-                                                    {pieceSetLabels[option]}
+                                            {PIECE_SET_OPTIONS.map((option) => (
+                                                <MenuItem key={option.id} value={option.id}>
+                                                    {option.label}
                                                 </MenuItem>
                                             ))}
                                         </Select>

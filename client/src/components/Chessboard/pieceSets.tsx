@@ -1,5 +1,8 @@
 import type { CSSProperties, ReactElement } from 'react';
+import type { PieceRenderObject } from 'react-chessboard';
 import type { AppPieceSetId } from '../../lib/desktopConfig';
+import { EN_CROISSANT_PIECE_IMAGES } from '../../lib/enCroissantPieceData';
+import { PIECE_SET_IDS } from '../../lib/pieceSetCatalog';
 
 type PieceKey = 'wK' | 'wQ' | 'wR' | 'wB' | 'wN' | 'wP' | 'bK' | 'bQ' | 'bR' | 'bB' | 'bN' | 'bP';
 type PieceRenderProps = {
@@ -20,24 +23,27 @@ type PieceStyle = {
     fontFamily: string;
 };
 
-type PieceRenderObject = Record<PieceKey, PieceRenderer>;
+type BuiltInPieceSetId = 'studio' | 'glass' | 'wire';
+type InternalPieceRenderObject = Record<PieceKey, PieceRenderer>;
 
 const PIECE_SYMBOLS: Record<PieceKey, string> = {
-    wK: '♔',
-    wQ: '♕',
-    wR: '♖',
-    wB: '♗',
-    wN: '♘',
-    wP: '♙',
-    bK: '♚',
-    bQ: '♛',
-    bR: '♜',
-    bB: '♝',
-    bN: '♞',
-    bP: '♟',
+    wK: '\u2654',
+    wQ: '\u2655',
+    wR: '\u2656',
+    wB: '\u2657',
+    wN: '\u2658',
+    wP: '\u2659',
+    bK: '\u265A',
+    bQ: '\u265B',
+    bR: '\u265C',
+    bB: '\u265D',
+    bN: '\u265E',
+    bP: '\u265F',
 };
 
-const SET_STYLES: Record<AppPieceSetId, Record<'white' | 'black', PieceStyle>> = {
+const BUILTIN_PIECE_SET_IDS: BuiltInPieceSetId[] = ['studio', 'glass', 'wire'];
+
+const SET_STYLES: Record<BuiltInPieceSetId, Record<'white' | 'black', PieceStyle>> = {
     studio: {
         white: {
             fill: '#f7f1e4',
@@ -98,12 +104,26 @@ const SET_STYLES: Record<AppPieceSetId, Record<'white' | 'black', PieceStyle>> =
     },
 };
 
-export const PIECE_SET_IDS: AppPieceSetId[] = ['studio', 'glass', 'wire'];
+function isBuiltInPieceSetId(setId: AppPieceSetId): setId is BuiltInPieceSetId {
+    return BUILTIN_PIECE_SET_IDS.includes(setId as BuiltInPieceSetId);
+}
 
 function renderPiece(pieceKey: PieceKey, setId: AppPieceSetId, props?: PieceRenderProps) {
+    if (!isBuiltInPieceSetId(setId)) {
+        const imageUri = EN_CROISSANT_PIECE_IMAGES[setId]?.[pieceKey];
+        if (imageUri) {
+            return (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style={props?.svgStyle}>
+                    <image href={imageUri} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet" />
+                </svg>
+            );
+        }
+    }
+
+    const builtInSetId: BuiltInPieceSetId = isBuiltInPieceSetId(setId) ? setId : 'studio';
     const side = pieceKey.startsWith('w') ? 'white' : 'black';
-    const style = SET_STYLES[setId][side];
-    const gradientId = `${setId}-${pieceKey}-gradient`;
+    const style = SET_STYLES[builtInSetId][side];
+    const gradientId = `${builtInSetId}-${pieceKey}-gradient`;
     const fill = style.gradientStart && style.gradientEnd ? `url(#${gradientId})` : style.fill;
 
     return (
@@ -146,7 +166,7 @@ function renderPiece(pieceKey: PieceKey, setId: AppPieceSetId, props?: PieceRend
     );
 }
 
-function buildPieceSet(setId: AppPieceSetId): PieceRenderObject {
+function buildPieceSet(setId: AppPieceSetId): InternalPieceRenderObject {
     return {
         wK: (props) => renderPiece('wK', setId, props),
         wQ: (props) => renderPiece('wQ', setId, props),
@@ -163,8 +183,10 @@ function buildPieceSet(setId: AppPieceSetId): PieceRenderObject {
     };
 }
 
-export const PIECE_SET_RENDERERS: Record<AppPieceSetId, PieceRenderObject> = {
-    studio: buildPieceSet('studio'),
-    glass: buildPieceSet('glass'),
-    wire: buildPieceSet('wire'),
-};
+export const PIECE_SET_RENDERERS: Record<AppPieceSetId, PieceRenderObject> = PIECE_SET_IDS.reduce(
+    (renderers, setId) => {
+        renderers[setId] = buildPieceSet(setId);
+        return renderers;
+    },
+    {} as Record<AppPieceSetId, PieceRenderObject>,
+);
