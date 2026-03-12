@@ -182,6 +182,13 @@ export default function PlayVsAI() {
         };
     }, [on, off]);
 
+    useEffect(() => () => {
+        if (isPlayingRef.current) {
+            emit('game:stop', () => { });
+            isPlayingRef.current = false;
+        }
+    }, [emit]);
+
     const handleStartGame = () => {
         if (!selectedEngine) {
             return;

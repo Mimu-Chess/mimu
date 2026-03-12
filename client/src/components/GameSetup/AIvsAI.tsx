@@ -80,6 +80,8 @@ export default function AIvsAI() {
     });
 
     const startAckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isRunningRef = useRef(false);
+    const isStartingRef = useRef(false);
 
     useEffect(() => {
         emit('engine:list', (list: EngineConfig[]) => {
@@ -217,6 +219,22 @@ export default function AIvsAI() {
             startAckTimeoutRef.current = null;
         }
     }, []);
+
+    useEffect(() => {
+        isRunningRef.current = isRunning;
+    }, [isRunning]);
+
+    useEffect(() => {
+        isStartingRef.current = isStarting;
+    }, [isStarting]);
+
+    useEffect(() => () => {
+        if (isRunningRef.current || isStartingRef.current) {
+            emit('match:stop', () => { });
+            isRunningRef.current = false;
+            isStartingRef.current = false;
+        }
+    }, [emit]);
 
     const handleStartMatch = () => {
         if (!whiteEngine || !blackEngine) {

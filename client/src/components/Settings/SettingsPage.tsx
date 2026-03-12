@@ -12,9 +12,11 @@ import {
     InputLabel,
     MenuItem,
     Select,
-    Switch,
     Tooltip,
+    ToggleButton,
+    ToggleButtonGroup,
     Typography,
+    Switch,
 } from '@mui/material';
 import {
     AutoAwesome as MotionIcon,
@@ -149,10 +151,20 @@ export default function SettingsPage() {
                                 label={settingsText.colorModeLabel}
                                 description={settingsText.colorModeDescription}
                                 control={(
-                                    <Switch
-                                        checked={colorMode === 'dark'}
-                                        onChange={(event) => setColorMode(event.target.checked ? 'dark' : 'light')}
-                                    />
+                                    <ToggleButtonGroup
+                                        value={colorMode}
+                                        exclusive
+                                        size="small"
+                                        onChange={(_, value) => value && setColorMode(value)}
+                                        sx={{ minWidth: 190 }}
+                                    >
+                                        <ToggleButton value="light" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>
+                                            {settingsText.lightModeLabel}
+                                        </ToggleButton>
+                                        <ToggleButton value="dark" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>
+                                            {settingsText.darkModeLabel}
+                                        </ToggleButton>
+                                    </ToggleButtonGroup>
                                 )}
                             />
                             <SettingRow

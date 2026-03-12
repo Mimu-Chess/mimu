@@ -1,39 +1,106 @@
 export type MoveSoundKind = 'move' | 'capture' | 'castle' | 'promote' | 'check';
 
-type SoundStep = {
-    frequency: number;
-    duration: number;
-    gain: number;
+type ClickStep = {
     delay?: number;
-    type?: OscillatorType;
+    noiseGain: number;
+    toneGain: number;
+    toneFrequency: number;
+    duration: number;
+    highpass: number;
+    lowpass: number;
 };
 
-const SOUND_PATTERNS: Record<MoveSoundKind, SoundStep[]> = {
+const SOUND_PATTERNS: Record<MoveSoundKind, ClickStep[]> = {
     move: [
-        { frequency: 540, duration: 0.04, gain: 0.12, type: 'triangle' },
-        { frequency: 680, duration: 0.035, gain: 0.08, delay: 0.03, type: 'triangle' },
+        {
+            noiseGain: 0.1,
+            toneGain: 0.028,
+            toneFrequency: 210,
+            duration: 0.042,
+            highpass: 520,
+            lowpass: 2600,
+        },
     ],
     capture: [
-        { frequency: 370, duration: 0.04, gain: 0.13, type: 'square' },
-        { frequency: 240, duration: 0.05, gain: 0.07, delay: 0.035, type: 'triangle' },
+        {
+            noiseGain: 0.18,
+            toneGain: 0.048,
+            toneFrequency: 145,
+            duration: 0.062,
+            highpass: 300,
+            lowpass: 1800,
+        },
+        {
+            delay: 0.018,
+            noiseGain: 0.05,
+            toneGain: 0.018,
+            toneFrequency: 110,
+            duration: 0.05,
+            highpass: 220,
+            lowpass: 1200,
+        },
     ],
     castle: [
-        { frequency: 480, duration: 0.035, gain: 0.11, type: 'triangle' },
-        { frequency: 620, duration: 0.045, gain: 0.09, delay: 0.028, type: 'triangle' },
-        { frequency: 780, duration: 0.05, gain: 0.08, delay: 0.058, type: 'sine' },
+        {
+            noiseGain: 0.095,
+            toneGain: 0.024,
+            toneFrequency: 205,
+            duration: 0.036,
+            highpass: 520,
+            lowpass: 2500,
+        },
+        {
+            delay: 0.055,
+            noiseGain: 0.09,
+            toneGain: 0.022,
+            toneFrequency: 220,
+            duration: 0.034,
+            highpass: 520,
+            lowpass: 2500,
+        },
     ],
     promote: [
-        { frequency: 520, duration: 0.04, gain: 0.09, type: 'triangle' },
-        { frequency: 720, duration: 0.04, gain: 0.1, delay: 0.025, type: 'triangle' },
-        { frequency: 960, duration: 0.06, gain: 0.08, delay: 0.055, type: 'sine' },
+        {
+            noiseGain: 0.09,
+            toneGain: 0.025,
+            toneFrequency: 210,
+            duration: 0.038,
+            highpass: 520,
+            lowpass: 2500,
+        },
+        {
+            delay: 0.048,
+            noiseGain: 0.06,
+            toneGain: 0.03,
+            toneFrequency: 320,
+            duration: 0.05,
+            highpass: 900,
+            lowpass: 3200,
+        },
     ],
     check: [
-        { frequency: 330, duration: 0.04, gain: 0.11, type: 'square' },
-        { frequency: 660, duration: 0.055, gain: 0.08, delay: 0.03, type: 'triangle' },
+        {
+            noiseGain: 0.07,
+            toneGain: 0.028,
+            toneFrequency: 320,
+            duration: 0.034,
+            highpass: 1100,
+            lowpass: 3600,
+        },
+        {
+            delay: 0.045,
+            noiseGain: 0.085,
+            toneGain: 0.032,
+            toneFrequency: 430,
+            duration: 0.038,
+            highpass: 1400,
+            lowpass: 4200,
+        },
     ],
 };
 
 let audioContext: AudioContext | null = null;
+let noiseBufferCache: AudioBuffer | null = null;
 
 function getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') {
@@ -50,6 +117,85 @@ function getAudioContext(): AudioContext | null {
     }
 
     return audioContext;
+}
+
+function getNoiseBuffer(context: AudioContext): AudioBuffer {
+    if (noiseBufferCache && noiseBufferCache.sampleRate === context.sampleRate) {
+        return noiseBufferCache;
+    }
+
+    const duration = 0.12;
+    const frameCount = Math.ceil(context.sampleRate * duration);
+    const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+    const channel = buffer.getChannelData(0);
+
+    for (let index = 0; index < frameCount; index += 1) {
+        channel[index] = (Math.random() * 2 - 1) * (1 - index / frameCount);
+    }
+
+    noiseBufferCache = buffer;
+    return buffer;
+}
+
+function scheduleGainEnvelope(gain: AudioParam, startAt: number, duration: number, peak: number) {
+    const attackEnd = startAt + Math.min(0.003, duration * 0.18);
+    const decayMid = startAt + duration * 0.45;
+    const endAt = startAt + duration;
+
+    gain.setValueAtTime(0.0001, startAt);
+    gain.exponentialRampToValueAtTime(peak, attackEnd);
+    gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.24), decayMid);
+    gain.exponentialRampToValueAtTime(0.0001, endAt);
+}
+
+function scheduleClick(context: AudioContext, destination: AudioNode, startAt: number, step: ClickStep) {
+    const endAt = startAt + step.duration;
+
+    const noiseSource = context.createBufferSource();
+    noiseSource.buffer = getNoiseBuffer(context);
+
+    const highpass = context.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(step.highpass, startAt);
+
+    const lowpass = context.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(step.lowpass, startAt);
+    lowpass.Q.setValueAtTime(0.7, startAt);
+
+    const noiseGain = context.createGain();
+    scheduleGainEnvelope(noiseGain.gain, startAt, step.duration, step.noiseGain);
+
+    noiseSource.connect(highpass);
+    highpass.connect(lowpass);
+    lowpass.connect(noiseGain);
+    noiseGain.connect(destination);
+
+    const toneOscillator = context.createOscillator();
+    toneOscillator.type = 'triangle';
+    toneOscillator.frequency.setValueAtTime(step.toneFrequency, startAt);
+    toneOscillator.frequency.exponentialRampToValueAtTime(Math.max(80, step.toneFrequency * 0.72), endAt);
+
+    const toneGain = context.createGain();
+    scheduleGainEnvelope(toneGain.gain, startAt, step.duration * 0.95, step.toneGain);
+
+    toneOscillator.connect(toneGain);
+    toneGain.connect(destination);
+
+    noiseSource.start(startAt);
+    noiseSource.stop(endAt + 0.01);
+    toneOscillator.start(startAt);
+    toneOscillator.stop(endAt + 0.01);
+
+    noiseSource.onended = () => {
+        noiseGain.disconnect();
+        lowpass.disconnect();
+        highpass.disconnect();
+    };
+
+    toneOscillator.onended = () => {
+        toneGain.disconnect();
+    };
 }
 
 export async function playMoveSound(kind: MoveSoundKind): Promise<void> {
@@ -69,36 +215,26 @@ export async function playMoveSound(kind: MoveSoundKind): Promise<void> {
 
     const pattern = SOUND_PATTERNS[kind];
     const masterGain = context.createGain();
-    masterGain.gain.setValueAtTime(0.26, context.currentTime);
+    masterGain.gain.setValueAtTime(0.72, context.currentTime);
     masterGain.connect(context.destination);
 
-    const startAt = context.currentTime + 0.01;
+    const compressor = context.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-18, context.currentTime);
+    compressor.knee.setValueAtTime(10, context.currentTime);
+    compressor.ratio.setValueAtTime(3, context.currentTime);
+    compressor.attack.setValueAtTime(0.002, context.currentTime);
+    compressor.release.setValueAtTime(0.06, context.currentTime);
+    compressor.connect(masterGain);
+
+    const startAt = context.currentTime + 0.008;
     const totalDuration = pattern.reduce((maxDuration, step) => Math.max(maxDuration, (step.delay ?? 0) + step.duration), 0);
 
     pattern.forEach((step) => {
-        const oscillator = context.createOscillator();
-        const gainNode = context.createGain();
-        const stepStart = startAt + (step.delay ?? 0);
-        const stepEnd = stepStart + step.duration;
-
-        oscillator.type = step.type ?? 'triangle';
-        oscillator.frequency.setValueAtTime(step.frequency, stepStart);
-
-        gainNode.gain.setValueAtTime(0.0001, stepStart);
-        gainNode.gain.exponentialRampToValueAtTime(step.gain, stepStart + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, stepEnd);
-
-        oscillator.connect(gainNode);
-        gainNode.connect(masterGain);
-
-        oscillator.start(stepStart);
-        oscillator.stop(stepEnd + 0.01);
-        oscillator.onended = () => {
-            gainNode.disconnect();
-        };
+        scheduleClick(context, compressor, startAt + (step.delay ?? 0), step);
     });
 
     window.setTimeout(() => {
+        compressor.disconnect();
         masterGain.disconnect();
-    }, Math.max(120, (totalDuration + 0.1) * 1000));
+    }, Math.max(140, (totalDuration + 0.12) * 1000));
 }
