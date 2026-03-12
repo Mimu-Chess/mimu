@@ -55,6 +55,15 @@ a, button {
   transition: all 0.2s ease;
 }
 
+body[data-app-animations='off'] *,
+body[data-app-animations='off'] *::before,
+body[data-app-animations='off'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 
 ::selection {
   background: var(--app-selection);

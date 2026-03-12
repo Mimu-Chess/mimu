@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Alert, Box, Button, Card, CardContent, Chip, Fade, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
-import { PlayArrow as PlayIcon, SportsEsports as GameIcon, Palette as ThemeIcon } from '@mui/icons-material';
+import { Alert, Box, Button, Card, CardContent, Chip, Fade, FormControl, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { PlayArrow as PlayIcon, SportsEsports as GameIcon } from '@mui/icons-material';
 import ChessboardPanel from '../Chessboard/ChessboardPanel';
 import MoveList from '../MoveList/MoveList';
 import EngineInfo from '../EngineInfo/EngineInfo';
@@ -8,6 +8,7 @@ import GameControls from '../GameControls/GameControls';
 import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
+import { useAppSettings } from '../../context/SettingsContext';
 
 interface EngineConfig {
     name: string;
@@ -38,7 +39,8 @@ type SideTab = 'current' | 'history';
 
 export default function PlayVsAI() {
     const { emit, on, off } = useSocket();
-    const { appTheme, themes, setThemeById } = useAppTheme();
+    const { appTheme } = useAppTheme();
+    const { strings } = useAppSettings();
     const [engines, setEngines] = useState<EngineConfig[]>([]);
     const [selectedEngine, setSelectedEngine] = useState('');
     const [humanColor, setHumanColor] = useState<'white' | 'black'>('white');
@@ -49,7 +51,6 @@ export default function PlayVsAI() {
     const [isThinking, setIsThinking] = useState(false);
     const [orientation, setOrientation] = useState<'white' | 'black'>('white');
     const [pgn, setPgn] = useState<string | null>(null);
-    const [showThemes, setShowThemes] = useState(false);
     const [sideTab, setSideTab] = useState<SideTab>('current');
     const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
     const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -144,15 +145,15 @@ export default function PlayVsAI() {
             isPlayingRef.current = false;
             setIsThinking(false);
 
-            let message = 'Game over!';
+            let message: string = strings.play.gameOver;
             if (state.result === '1-0') {
-                message = 'White wins!';
+                message = strings.play.whiteWins;
             }
             else if (state.result === '0-1') {
-                message = 'Black wins!';
+                message = strings.play.blackWins;
             }
             else if (state.result === '1/2-1/2') {
-                message = 'Draw!';
+                message = strings.play.draw;
             }
 
             setSnackbar({ open: true, message, severity: 'info' });
@@ -213,7 +214,7 @@ export default function PlayVsAI() {
                 }
             }
             else {
-                setSnackbar({ open: true, message: response.error || 'Failed to start game', severity: 'error' });
+                setSnackbar({ open: true, message: response.error || strings.play.failedToStartGame, severity: 'error' });
             }
         });
     };
@@ -342,31 +343,31 @@ export default function PlayVsAI() {
                 <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <GameIcon sx={{ color: 'primary.main', fontSize: 20 }} />
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Game Setup</Typography>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{strings.play.gameSetup}</Typography>
                     </Box>
 
                     <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                        <InputLabel>Engine</InputLabel>
-                        <Select value={selectedEngine} label="Engine" onChange={(event) => setSelectedEngine(event.target.value)}>
+                        <InputLabel>{strings.common.engine}</InputLabel>
+                        <Select value={selectedEngine} label={strings.common.engine} onChange={(event) => setSelectedEngine(event.target.value)}>
                             {engines.map((engine) => (
                                 <MenuItem key={engine.name} value={engine.name}>{engine.name}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
 
-                    <Typography variant="caption" sx={{ mb: 0.5, color: 'text.secondary', display: 'block' }}>Play as</Typography>
+                    <Typography variant="caption" sx={{ mb: 0.5, color: 'text.secondary', display: 'block' }}>{strings.play.playAs}</Typography>
                     <ToggleButtonGroup value={humanColor} exclusive onChange={(_, value) => value && setHumanColor(value)} fullWidth size="small" sx={{ mb: 2 }}>
-                        <ToggleButton value="white" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>White</ToggleButton>
-                        <ToggleButton value="black" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>Black</ToggleButton>
+                        <ToggleButton value="white" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>{strings.common.white}</ToggleButton>
+                        <ToggleButton value="black" sx={{ textTransform: 'none', fontSize: '0.8rem' }}>{strings.common.black}</ToggleButton>
                     </ToggleButtonGroup>
 
                     <Typography variant="caption" sx={{ mb: 0.5, color: 'text.secondary', display: 'block' }}>
-                        Think time: {(moveTime / 1000).toFixed(1)}s
+                        {strings.play.thinkTime((moveTime / 1000).toFixed(1))}
                     </Typography>
                     {isWeightsBased ? (
                         <Box sx={{ p: 1, mb: 2, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                This engine uses nodes = {selectedEngineConfig?.nodes ?? 1} per move.
+                                {strings.play.nodesPerMove(selectedEngineConfig?.nodes ?? 1)}
                             </Typography>
                         </Box>
                     ) : (
@@ -374,12 +375,12 @@ export default function PlayVsAI() {
                     )}
 
                     <Button variant="contained" fullWidth startIcon={<PlayIcon />} onClick={handleStartGame} disabled={!selectedEngine || engines.length === 0}>
-                        Start Game
+                        {strings.play.startGame}
                     </Button>
 
                     {engines.length === 0 && (
                         <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1.5, color: 'warning.main' }}>
-                            No engines configured. Go to Engines to add one.
+                            {strings.play.noEnginesConfigured}
                         </Typography>
                     )}
                 </CardContent>
@@ -412,10 +413,10 @@ export default function PlayVsAI() {
     return (
         <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>Play vs AI</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>{strings.play.title}</Typography>
             </Box>
             <Typography variant="caption" sx={{ color: 'text.secondary', mb: 2, display: 'block' }}>
-                Challenge a chess engine
+                {strings.play.subtitle}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -424,62 +425,25 @@ export default function PlayVsAI() {
                         <Chip
                             label={
                                 showingHistory
-                                    ? 'History replay'
+                                    ? strings.play.historyReplay
                                     : gameState?.isGameOver
-                                        ? 'Game finished'
+                                        ? strings.play.gameFinished
                                         : gameState
-                                            ? (isHumanTurn ? 'Your turn' : 'Engine thinking...')
-                                            : 'Ready to start'
+                                            ? (isHumanTurn ? strings.play.yourTurn : strings.play.engineThinking)
+                                            : strings.play.readyToStart
                             }
                             color={showingHistory || isHumanTurn ? 'primary' : 'default'}
                             size="small"
                             variant={showingHistory || isHumanTurn ? 'filled' : 'outlined'}
                             sx={{ height: 24, fontSize: '0.7rem' }}
                         />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {showingHistory && selectedHistoryEntry?.result && (
-                                <Chip label={selectedHistoryEntry.result} color="secondary" size="small" sx={{ height: 24, fontSize: '0.7rem' }} />
-                            )}
-                            {!showingHistory && gameState?.result && (
-                                <Chip label={gameState.result} color="secondary" size="small" sx={{ height: 24, fontSize: '0.7rem' }} />
-                            )}
-                            <Tooltip title="Theme">
-                                <IconButton size="small" onClick={() => setShowThemes((value) => !value)} sx={{ color: 'text.secondary' }}>
-                                    <ThemeIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
+                        {showingHistory && selectedHistoryEntry?.result && (
+                            <Chip label={selectedHistoryEntry.result} color="secondary" size="small" sx={{ height: 24, fontSize: '0.7rem' }} />
+                        )}
+                        {!showingHistory && gameState?.result && (
+                            <Chip label={gameState.result} color="secondary" size="small" sx={{ height: 24, fontSize: '0.7rem' }} />
+                        )}
                     </Box>
-
-                    {showThemes && (
-                        <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                            {themes.map((theme) => (
-                                <Tooltip key={theme.id} title={theme.name}>
-                                    <Box
-                                        onClick={() => {
-                                            setThemeById(theme.id);
-                                            setShowThemes(false);
-                                        }}
-                                        sx={{
-                                            width: 28,
-                                            height: 28,
-                                            borderRadius: 0.75,
-                                            cursor: 'pointer',
-                                            overflow: 'hidden',
-                                            border: appTheme.id === theme.id ? '2px solid' : '2px solid transparent',
-                                            borderColor: appTheme.id === theme.id ? 'primary.main' : 'transparent',
-                                            display: 'flex',
-                                            transition: 'border-color 0.15s',
-                                            '&:hover': { borderColor: 'primary.light' },
-                                        }}
-                                    >
-                                        <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardLight }} />
-                                        <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardDark }} />
-                                    </Box>
-                                </Tooltip>
-                            ))}
-                        </Box>
-                    )}
 
                     <ChessboardPanel
                         fen={showingHistory ? historySnapshot.fen : (gameState?.fen || 'start')}
@@ -492,7 +456,7 @@ export default function PlayVsAI() {
 
                     {showingHistory ? (
                         <Typography variant="caption" sx={{ mt: 1.25, display: 'block', color: 'text.secondary', textAlign: 'center' }}>
-                            Viewing a saved game. Switch back to Current Game to resume live play controls.
+                            {strings.play.viewingSavedGame}
                         </Typography>
                     ) : gameState ? (
                         <GameControls
@@ -519,8 +483,8 @@ export default function PlayVsAI() {
                             variant="fullWidth"
                             sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
                         >
-                            <Tab value="current" label="Current Game" />
-                            <Tab value="history" label={`Game History (${historyEntries.length})`} />
+                            <Tab value="current" label={strings.play.currentGameTab} />
+                            <Tab value="history" label={strings.play.gameHistoryTab(historyEntries.length)} />
                         </Tabs>
                         <Box sx={{ p: 1.5 }}>
                             {sideTab === 'current' ? renderCurrentPanel() : (
@@ -536,7 +500,7 @@ export default function PlayVsAI() {
                                     onSelectPlyIndex={setSelectedHistoryPlyIndex}
                                     onDownloadPGN={handleDownloadHistoryPGN}
                                     onClearHistory={handleClearHistory}
-                                    emptyMessage="Finish a game to add it to history."
+                                    emptyMessage={strings.play.finishGameToAddHistory}
                                 />
                             )}
                         </Box>

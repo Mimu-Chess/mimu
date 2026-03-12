@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { alpha, createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import { initializeDesktopSettings, writeDesktopSettingsPatch } from '../lib/desktopConfig';
+import type { AppColorMode } from '../lib/desktopConfig';
+import { useAppSettings } from './SettingsContext';
 
 const THEME_STORAGE_KEY = 'mimu-theme';
 const CUSTOM_THEME_COLOR_STORAGE_KEY = 'mimu-custom-theme-color';
@@ -233,21 +235,65 @@ function buildCustomTheme(color: string): AppTheme {
         accent: shiftRgb(primary, 18),
     };
 }
-function buildMuiTheme(t: AppTheme): Theme {
+function buildSurfacePalette(t: AppTheme, colorMode: AppColorMode) {
+    if (colorMode === 'light') {
+        const bgDefault = mixColors('#f7f3ec', t.boardLight, 0.24);
+        const bgPaper = mixColors('#ffffff', t.boardLight, 0.12);
+        const bgSidebar = mixColors('#fcfaf6', t.primary, 0.06);
+        const textPrimary = '#211c16';
+        return {
+            mode: 'light' as const,
+            bgDefault,
+            bgPaper,
+            bgSidebar,
+            textPrimary,
+            textSecondary: alpha(textPrimary, 0.68),
+            divider: alpha(textPrimary, 0.10),
+            border: alpha(textPrimary, 0.09),
+            hoverBackground: alpha(t.primary, 0.08),
+            bodyBackgroundImage: `
+                radial-gradient(ellipse at 14% 0%, ${alpha(t.secondary, 0.11)} 0%, transparent 38%),
+                radial-gradient(ellipse at 100% 10%, ${alpha(t.primary, 0.12)} 0%, transparent 42%)
+            `,
+            dialogShadow: `0 24px 60px ${alpha('#152033', 0.18)}`,
+            cardShadow: `0 6px 28px ${alpha(t.primary, 0.10)}`,
+        };
+    }
+
+    return {
+        mode: 'dark' as const,
+        bgDefault: t.bgDefault,
+        bgPaper: t.bgPaper,
+        bgSidebar: t.bgSidebar,
+        textPrimary: '#f0e8e0',
+        textSecondary: alpha('#f0e8e0', 0.65),
+        divider: alpha('#ffffff', 0.08),
+        border: alpha('#ffffff', 0.07),
+        hoverBackground: alpha('#000000', 0.16),
+        bodyBackgroundImage: `
+            radial-gradient(ellipse at 10% 5%, ${alpha(t.secondary, 0.10)} 0%, transparent 42%),
+            radial-gradient(ellipse at 88% 12%, ${alpha(t.primary, 0.13)} 0%, transparent 46%)
+        `,
+        dialogShadow: `0 24px 60px ${alpha('#000000', 0.5)}`,
+        cardShadow: `0 4px 24px ${alpha(t.primary, 0.10)}`,
+    };
+}
+function buildMuiTheme(t: AppTheme, colorMode: AppColorMode): Theme {
+    const surface = buildSurfacePalette(t, colorMode);
     return createTheme({
         palette: {
-            mode: 'dark',
+            mode: surface.mode,
             primary: { main: t.primary },
             secondary: { main: t.secondary },
             background: {
-                default: t.bgDefault,
-                paper: t.bgPaper,
+                default: surface.bgDefault,
+                paper: surface.bgPaper,
             },
             text: {
-                primary: '#f0e8e0',
-                secondary: alpha('#f0e8e0', 0.65),
+                primary: surface.textPrimary,
+                secondary: surface.textSecondary,
             },
-            divider: alpha('#ffffff', 0.08),
+            divider: surface.divider,
         },
         typography: {
             fontFamily: '"Inter", "Nunito", "Roboto", sans-serif',
@@ -265,14 +311,12 @@ function buildMuiTheme(t: AppTheme): Theme {
                         '--app-selection': alpha(t.primary, 0.35),
                         '--app-scrollbar': alpha(t.primary, 0.28),
                         '--app-scrollbar-hover': alpha(t.primary, 0.44),
+                        colorScheme: colorMode,
                     },
                     body: {
-                        backgroundColor: t.bgDefault,
-                        backgroundImage: `
-                            radial-gradient(ellipse at 10% 5%, ${alpha(t.secondary, 0.10)} 0%, transparent 42%),
-                            radial-gradient(ellipse at 88% 12%, ${alpha(t.primary, 0.13)} 0%, transparent 46%)
-                        `,
-                        color: '#f0e8e0',
+                        backgroundColor: surface.bgDefault,
+                        backgroundImage: surface.bodyBackgroundImage,
+                        color: surface.textPrimary,
                     },
                     '#root': { minHeight: '100vh' },
                     '::selection': { backgroundColor: 'var(--app-selection)', color: '#fff' },
@@ -309,7 +353,7 @@ function buildMuiTheme(t: AppTheme): Theme {
                 styleOverrides: {
                     root: {
                         backgroundImage: 'none',
-                        border: `1px solid ${alpha('#ffffff', 0.07)}`,
+                        border: `1px solid ${surface.border}`,
                     },
                 },
             },
@@ -317,12 +361,12 @@ function buildMuiTheme(t: AppTheme): Theme {
                 styleOverrides: {
                     root: {
                         backgroundImage: 'none',
-                        border: `1px solid ${alpha('#ffffff', 0.07)}`,
+                        border: `1px solid ${surface.border}`,
                         borderRadius: 16,
                         transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                         '&:hover': {
                             borderColor: alpha(t.primary, 0.32),
-                            boxShadow: `0 4px 24px ${alpha(t.primary, 0.10)}`,
+                            boxShadow: surface.cardShadow,
                         },
                     },
                 },
@@ -338,14 +382,14 @@ function buildMuiTheme(t: AppTheme): Theme {
                         backgroundImage: 'none',
                         borderRadius: 20,
                         border: `1px solid ${alpha(t.primary, 0.18)}`,
-                        boxShadow: `0 24px 60px ${alpha('#000', 0.5)}`,
+                        boxShadow: surface.dialogShadow,
                     },
                 },
             },
             MuiDrawer: {
                 styleOverrides: {
                     paper: {
-                        backgroundColor: t.bgSidebar,
+                        backgroundColor: surface.bgSidebar,
                         borderRight: `1px solid ${alpha(t.primary, 0.18)}`,
                         backgroundImage: 'none',
                     },
@@ -354,7 +398,7 @@ function buildMuiTheme(t: AppTheme): Theme {
             MuiAppBar: {
                 styleOverrides: {
                     root: {
-                        backgroundColor: alpha(t.bgPaper, 0.88),
+                        backgroundColor: alpha(surface.bgPaper, colorMode === 'dark' ? 0.88 : 0.94),
                         borderBottom: `1px solid ${alpha(t.primary, 0.18)}`,
                         backdropFilter: 'blur(12px)',
                         backgroundImage: 'none',
@@ -386,7 +430,7 @@ function buildMuiTheme(t: AppTheme): Theme {
                             '&:hover': { backgroundColor: alpha(t.primary, 0.28) },
                         },
                         '&:hover': {
-                            backgroundColor: alpha('#000000', 0.16),
+                            backgroundColor: surface.hoverBackground,
                         },
                     },
                 },
@@ -414,12 +458,12 @@ function buildMuiTheme(t: AppTheme): Theme {
             },
             MuiTableCell: {
                 styleOverrides: {
-                    root: { borderBottom: `1px solid ${alpha('#ffffff', 0.07)}` },
+                    root: { borderBottom: `1px solid ${surface.border}` },
                 },
             },
             MuiDivider: {
                 styleOverrides: {
-                    root: { borderColor: alpha('#ffffff', 0.07) },
+                    root: { borderColor: surface.border },
                 },
             },
         },
@@ -428,6 +472,7 @@ function buildMuiTheme(t: AppTheme): Theme {
 export function ThemeProvider({ children }: {
     children: ReactNode;
 }) {
+    const { colorMode } = useAppSettings();
     const [themeId, setThemeId] = useState(() => {
         if (typeof window === 'undefined')
             return 'cappuccino';
@@ -483,7 +528,7 @@ export function ThemeProvider({ children }: {
     }, []);
 
     const appTheme = useMemo(() => themes.find((t) => t.id === themeId) || themes[0], [themeId, themes]);
-    const muiTheme = useMemo(() => buildMuiTheme(appTheme), [appTheme]);
+    const muiTheme = useMemo(() => buildMuiTheme(appTheme, colorMode), [appTheme, colorMode]);
     const setThemeById = useCallback((id: string) => {
         const exists = [...APP_THEMES.map((theme) => theme.id), 'custom'].includes(id);
         if (!exists)

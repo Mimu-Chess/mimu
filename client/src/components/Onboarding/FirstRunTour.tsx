@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Paper, Portal, Typography } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { useAppSettings } from '../../context/SettingsContext';
 
 type AppView = 'play' | 'match' | 'engines';
 type Placement = 'top' | 'right' | 'bottom' | 'left' | 'center';
@@ -21,57 +22,43 @@ interface FirstRunTourProps {
     onFinish: () => void;
 }
 
-const TOUR_STEPS: TourStep[] = [
+const TOUR_STEP_META: Array<Omit<TourStep, 'title' | 'body'>> = [
     {
         id: 'welcome',
-        title: 'Welcome to Mimu Chess',
-        body: 'This first-run setup will walk you through the app in a few quick steps so you know where to add engines, start games, and run matches.',
         placement: 'center',
     },
     {
         id: 'engines-nav',
-        title: 'Start with Engines',
-        body: 'This tab is where you manage your local UCI engines. Add them here before trying to play or run matches.',
         view: 'engines',
         selector: '[data-tour="nav-engines"]',
         placement: 'right',
     },
     {
         id: 'engines-add',
-        title: 'Add your first engine',
-        body: 'Use this button to register an engine executable, then optionally attach a weights file and node limit for engines like LC0 or Maia.',
         view: 'engines',
         selector: '[data-tour="engines-add-button"]',
         placement: 'bottom',
     },
     {
         id: 'play-nav',
-        title: 'Play against an engine',
-        body: 'Once you have an engine configured, this page lets you challenge it directly.',
         view: 'play',
         selector: '[data-tour="nav-play"]',
         placement: 'right',
     },
     {
         id: 'play-setup',
-        title: 'Game setup lives here',
-        body: 'Pick the engine, choose your color, adjust think time, and start a human-vs-AI game from this panel.',
         view: 'play',
         selector: '[data-tour="play-setup-card"]',
         placement: 'right',
     },
     {
         id: 'match-nav',
-        title: 'Run engine matches',
-        body: 'This page is for automated engine-vs-engine testing and comparisons.',
         view: 'match',
         selector: '[data-tour="nav-match"]',
         placement: 'right',
     },
     {
         id: 'match-setup',
-        title: 'Match setup panel',
-        body: 'Choose both engines, set the number of games and move time, then start a full match series here.',
         view: 'match',
         selector: '[data-tour="match-setup-card"]',
         placement: 'right',
@@ -84,9 +71,15 @@ function clamp(value: number, min: number, max: number) {
 
 export function FirstRunTour({ open, activeView, onViewChange, onFinish }: FirstRunTourProps) {
     const theme = useTheme();
+    const { strings } = useAppSettings();
     const [stepIndex, setStepIndex] = useState(0);
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-    const currentStep = TOUR_STEPS[stepIndex];
+    const tourSteps = useMemo(() => TOUR_STEP_META.map((step, index) => ({
+        ...step,
+        title: strings.onboarding.steps[index].title,
+        body: strings.onboarding.steps[index].body,
+    })), [strings.onboarding.steps]);
+    const currentStep = tourSteps[stepIndex];
 
     useEffect(() => {
         if (!open) {
@@ -273,7 +266,7 @@ export function FirstRunTour({ open, activeView, onViewChange, onFinish }: First
                     }}
                 >
                     <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: '0.12em' }}>
-                        First-Time Setup
+                        {strings.onboarding.badge}
                     </Typography>
                     <Typography variant="h6" sx={{ mt: 0.5, mb: 1, fontWeight: 700 }}>
                         {currentStep.title}
@@ -284,29 +277,29 @@ export function FirstRunTour({ open, activeView, onViewChange, onFinish }: First
 
                     <Box sx={{ mt: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                         <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                            Step {stepIndex + 1} of {TOUR_STEPS.length}
+                            {strings.onboarding.stepOf(stepIndex + 1, tourSteps.length)}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button size="small" color="inherit" onClick={onFinish}>
-                                Skip
+                                {strings.onboarding.skip}
                             </Button>
                             {stepIndex > 0 && (
                                 <Button size="small" color="inherit" onClick={() => setStepIndex((prev) => prev - 1)}>
-                                    Back
+                                    {strings.onboarding.back}
                                 </Button>
                             )}
                             <Button
                                 size="small"
                                 variant="contained"
                                 onClick={() => {
-                                    if (stepIndex === TOUR_STEPS.length - 1) {
+                                    if (stepIndex === tourSteps.length - 1) {
                                         onFinish();
                                         return;
                                     }
                                     setStepIndex((prev) => prev + 1);
                                 }}
                             >
-                                {stepIndex === TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}
+                                {stepIndex === tourSteps.length - 1 ? strings.onboarding.finish : strings.onboarding.next}
                             </Button>
                         </Box>
                     </Box>

@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListIt
 import { alpha } from '@mui/material/styles';
 import { Folder as FolderIcon, InsertDriveFile as FileIcon, ArrowUpward as UpIcon, Refresh as RefreshIcon, Computer as ComputerIcon, ChevronRight as ChevronRightIcon, Description as DocumentsIcon, Download as DownloadsIcon, Image as PicturesIcon, Movie as VideosIcon, LibraryMusic as MusicIcon, DesktopWindows as DesktopIcon, } from '@mui/icons-material';
 import { serverUrl } from '../../lib/server';
+import { useAppSettings } from '../../context/SettingsContext';
 interface FileEntry {
     name: string;
     fullPath: string;
@@ -118,7 +119,9 @@ function getBreadcrumbs(currentPath: string): Array<{
 
     return crumbs;
 }
-export default function FileBrowserDialog({ open, title = 'Browse Files', accept = [], onSelect, onClose }: Props) {
+export default function FileBrowserDialog({ open, title, accept = [], onSelect, onClose }: Props) {
+    const { strings } = useAppSettings();
+    const dialogTitle = title || strings.fileBrowser.title;
     const [result, setResult] = useState<BrowseResult | null>(null);
     const [places, setPlaces] = useState<FileEntry[]>([]);
     const [loading, setLoading] = useState(false);
@@ -132,9 +135,9 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
         const filesData = await filesRes.json();
         const placesData = await placesRes.json();
         if (!filesRes.ok)
-            throw new Error(filesData.error || 'Failed to list drives');
+            throw new Error(filesData.error || strings.fileBrowser.failedToListDrives);
         if (!placesRes.ok)
-            throw new Error(placesData.error || 'Failed to list quick access folders');
+            throw new Error(placesData.error || strings.fileBrowser.failedToListQuickAccess);
         setPlaces((placesData as PlacesResult).entries || []);
         return filesData as BrowseResult;
     }, []);
@@ -147,7 +150,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                     const res = await fetch(serverUrl(`/api/files?path=${encodeURIComponent(dir)}`));
                     const json = await res.json();
                     if (!res.ok)
-                        throw new Error(json.error || 'Failed to list directory');
+                        throw new Error(json.error || strings.fileBrowser.failedToListDirectory);
                     return json as BrowseResult;
                 })()
                 : await loadRoot();
@@ -188,7 +191,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
         return accept.some((ext) => lower.endsWith(ext.toLowerCase()));
     }) ?? [];
     const breadcrumbs = useMemo(() => getBreadcrumbs(result?.current || ''), [result?.current]);
-    const activeFilterLabel = accept.length > 0 ? accept.join(', ') : 'All files';
+    const activeFilterLabel = accept.length > 0 ? accept.join(', ') : strings.common.allFiles;
     const currentPath = result?.current || '';
 
     const getPlaceIcon = (name: string) => {
@@ -225,10 +228,10 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
             background: (theme) => `linear-gradient(180deg, ${alpha(theme.palette.primary.main, 0.14)} 0%, ${alpha(theme.palette.background.paper, 0.98)} 100%)`,
         }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {title}
+                    {dialogTitle}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-                    Browse local files inside the app window.
+                    {strings.fileBrowser.subtitle}
                 </Typography>
             </DialogTitle>
 
@@ -255,7 +258,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                     bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                 },
             }}>
-                                    {crumb.label}
+                                    {crumb.label === 'Computer' ? strings.common.computer : crumb.label}
                                 </Button>
                                 {index < breadcrumbs.length - 1 && <ChevronRightIcon sx={{ fontSize: 15, color: 'text.disabled' }}/>}
                             </Box>))}
@@ -272,20 +275,20 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
             borderBottom: '1px solid',
             borderColor: 'divider',
         }}>
-                    <Tooltip title="Up one level">
+                    <Tooltip title={strings.fileBrowser.upOneLevel}>
                         <span>
                             <IconButton size="small" disabled={!result?.parent || loading} onClick={() => result?.parent && navigate(result.parent)}>
                                 <UpIcon fontSize="small"/>
                             </IconButton>
                         </span>
                     </Tooltip>
-                    <TextField size="small" fullWidth value={pathInput} onChange={(e) => setPathInput(e.target.value)} placeholder="Type a path and press Enter..." onKeyDown={(e) => e.key === 'Enter' && handlePathSubmit(e as any)} sx={{
+                    <TextField size="small" fullWidth value={pathInput} onChange={(e) => setPathInput(e.target.value)} placeholder={strings.fileBrowser.typePath} onKeyDown={(e) => e.key === 'Enter' && handlePathSubmit(e as any)} sx={{
             '& .MuiInputBase-input': {
                 fontFamily: '"JetBrains Mono", monospace',
                 fontSize: '0.8rem',
             },
         }}/>
-                    <Tooltip title="Refresh">
+                    <Tooltip title={strings.common.refresh}>
                         <IconButton size="small" type="submit" disabled={loading}>
                             <RefreshIcon fontSize="small"/>
                         </IconButton>
@@ -301,14 +304,14 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
             py: 1.5,
         }}>
                         <Typography variant="caption" sx={{ px: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            Locations
+                            {strings.fileBrowser.locations}
                         </Typography>
                         <List dense disablePadding sx={{ mt: 1 }}>
                             <ListItemButton selected={currentPath === ''} onClick={() => navigate('')} disableRipple>
                                 <ListItemIcon sx={{ minWidth: 34 }}>
                                     <ComputerIcon fontSize="small" sx={{ color: 'primary.main' }}/>
                                 </ListItemIcon>
-                                <ListItemText primary="Computer" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}/>
+                                <ListItemText primary={strings.common.computer} primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}/>
                             </ListItemButton>
                             {places.map((place) => (<ListItemButton key={place.fullPath} selected={isSameOrChildPath(currentPath, place.fullPath)} onClick={() => navigate(place.fullPath)} disableRipple>
                                     <ListItemIcon sx={{ minWidth: 34 }}>
@@ -331,13 +334,13 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
             bgcolor: (theme) => alpha(theme.palette.common.white, 0.02),
         }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.04em' }}>
-                                Name
+                                {strings.fileBrowser.name}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.04em' }}>
-                                Type
+                                {strings.fileBrowser.type}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: '0.04em' }}>
-                                Folder
+                                {strings.fileBrowser.folderColumn}
                             </Typography>
                         </Box>
 
@@ -352,7 +355,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                                 </Box>)}
                             {!loading && !error && filteredEntries.length === 0 && (<Box sx={{ p: 3 }}>
                                     <Typography variant="body2" color="text.secondary">
-                                        No matching files in this folder.
+                                        {strings.fileBrowser.noMatchingFiles}
                                     </Typography>
                                 </Box>)}
                             {!loading && !error && filteredEntries.map((entry) => (<Box key={entry.fullPath} onClick={() => handleEntry(entry)} sx={{
@@ -384,7 +387,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
                                         </Typography>
                                     </Box>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        {entry.isDir ? 'Folder' : 'File'}
+                                        {entry.isDir ? strings.common.folder : strings.common.file}
                                     </Typography>
                                     <Typography variant="caption" sx={{
                 color: 'text.secondary',
@@ -403,7 +406,7 @@ export default function FileBrowserDialog({ open, title = 'Browse Files', accept
 
             <DialogActions sx={{ px: 2, py: 1.25, borderTop: '1px solid', borderColor: 'divider' }}>
                 <Button onClick={onClose} size="small">
-                    Cancel
+                    {strings.common.cancel}
                 </Button>
             </DialogActions>
         </Dialog>);

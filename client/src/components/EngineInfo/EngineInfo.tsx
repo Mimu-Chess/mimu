@@ -1,6 +1,7 @@
 import { Paper, Typography, Box, LinearProgress } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Psychology as BrainIcon } from '@mui/icons-material';
+import { useAppSettings } from '../../context/SettingsContext';
 interface EngineInfoData {
     depth?: number;
     score?: {
@@ -34,6 +35,7 @@ function formatNodes(nodes: number): string {
     return `${nodes}`;
 }
 export default function EngineInfo({ info, engineName, isThinking }: EngineInfoProps) {
+    const { strings } = useAppSettings();
     let evalBarValue = 50;
     if (info?.score) {
         if (info.score.type === 'cp') {
@@ -47,7 +49,7 @@ export default function EngineInfo({ info, engineName, isThinking }: EngineInfoP
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                 <BrainIcon sx={{ color: 'primary.main', fontSize: 20 }}/>
                 <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                    Engine {engineName ? `- ${engineName}` : ''}
+                    {strings.engineInfo.title(engineName)}
                 </Typography>
             </Box>
 
@@ -92,19 +94,19 @@ export default function EngineInfo({ info, engineName, isThinking }: EngineInfoP
                     
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <Box>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Depth</Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>{strings.engineInfo.depth}</Typography>
                             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
                                 {info.depth || '-'}
                             </Typography>
                         </Box>
                         {info.nodes && (<Box>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Nodes</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>{strings.engineInfo.nodes}</Typography>
                                 <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
                                     {formatNodes(info.nodes)}
                                 </Typography>
                             </Box>)}
                         {info.nps && (<Box>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>NPS</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>{strings.engineInfo.nps}</Typography>
                                 <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
                                     {formatNodes(info.nps)}
                                 </Typography>
@@ -113,7 +115,7 @@ export default function EngineInfo({ info, engineName, isThinking }: EngineInfoP
 
                     
                     {info.pv && (<Box>
-                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>Principal Variation</Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>{strings.engineInfo.principalVariation}</Typography>
                             <Typography variant="body2" sx={{
                     fontFamily: '"JetBrains Mono", monospace',
                     fontSize: '0.75rem',
@@ -126,7 +128,7 @@ export default function EngineInfo({ info, engineName, isThinking }: EngineInfoP
                             </Typography>
                         </Box>)}
                 </Box>) : (<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                    {isThinking ? 'Calculating...' : 'No engine data'}
+                    {isThinking ? strings.engineInfo.calculating : strings.engineInfo.noEngineData}
                 </Typography>)}
         </Paper>);
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Alert, Box, Button, Card, CardContent, Chip, Divider, Fade, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, TextField, Tooltip, Typography } from '@mui/material';
-import { PlayArrow as PlayIcon, Stop as StopIcon, SmartToy as MatchIcon, Palette as ThemeIcon } from '@mui/icons-material';
+import { Alert, Box, Button, Card, CardContent, Chip, Divider, Fade, FormControl, InputLabel, MenuItem, Select, Slider, Snackbar, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { PlayArrow as PlayIcon, Stop as StopIcon, SmartToy as MatchIcon } from '@mui/icons-material';
 import ChessboardPanel from '../Chessboard/ChessboardPanel';
 import MoveList from '../MoveList/MoveList';
 import EngineInfo from '../EngineInfo/EngineInfo';
@@ -8,6 +8,7 @@ import MatchResults from '../MatchResults/MatchResults';
 import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '../GameHistory/GameHistoryPanel';
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
+import { useAppSettings } from '../../context/SettingsContext';
 
 interface EngineConfig {
     name: string;
@@ -45,7 +46,8 @@ type SideTab = 'current' | 'history';
 
 export default function AIvsAI() {
     const { emit, on, off } = useSocket();
-    const { appTheme, themes, setThemeById } = useAppTheme();
+    const { appTheme } = useAppTheme();
+    const { strings } = useAppSettings();
     const [engines, setEngines] = useState<EngineConfig[]>([]);
     const [whiteEngine, setWhiteEngine] = useState('');
     const [blackEngine, setBlackEngine] = useState('');
@@ -68,7 +70,6 @@ export default function AIvsAI() {
     const [engineInfo, setEngineInfo] = useState<any>(null);
     const [currentWhite, setCurrentWhite] = useState('');
     const [currentBlack, setCurrentBlack] = useState('');
-    const [showThemes, setShowThemes] = useState(false);
     const [sideTab, setSideTab] = useState<SideTab>('current');
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -169,11 +170,11 @@ export default function AIvsAI() {
             setIsRunning(false);
             setResults(data.results);
             setScore(data.score);
-            setSnackbar({ open: true, message: 'Match completed!', severity: 'success' });
+            setSnackbar({ open: true, message: strings.match.matchCompleted, severity: 'success' });
         };
 
         const matchErrorHandler = (error: any) => {
-            setSnackbar({ open: true, message: `Error in game ${error.gameNum}: ${error.error}`, severity: 'error' });
+            setSnackbar({ open: true, message: strings.match.errorInGame(error.gameNum, error.error), severity: 'error' });
         };
 
         on('match:game-start', gameStartHandler);
@@ -241,7 +242,7 @@ export default function AIvsAI() {
 
         startAckTimeoutRef.current = setTimeout(() => {
             setIsStarting(false);
-            setSnackbar({ open: true, message: 'Match start timed out. Check server connection and engine setup.', severity: 'error' });
+            setSnackbar({ open: true, message: strings.match.matchStartTimedOut, severity: 'error' });
         }, 8000);
 
         emit('match:start', {
@@ -257,7 +258,7 @@ export default function AIvsAI() {
 
             setIsStarting(false);
             if (!response.success) {
-                setSnackbar({ open: true, message: response.error || 'Failed to start match', severity: 'error' });
+                setSnackbar({ open: true, message: response.error || strings.match.failedToStartMatch, severity: 'error' });
                 return;
             }
 
@@ -341,13 +342,13 @@ export default function AIvsAI() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
                         <MatchIcon sx={{ color: 'primary.main' }} />
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Match Setup
+                            {strings.match.matchSetup}
                         </Typography>
                     </Box>
 
                     <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Engine 1 (White first)</InputLabel>
-                        <Select value={whiteEngine} label="Engine 1 (White first)" onChange={(event) => setWhiteEngine(event.target.value)}>
+                        <InputLabel>{strings.match.engine1WhiteFirst}</InputLabel>
+                        <Select value={whiteEngine} label={strings.match.engine1WhiteFirst} onChange={(event) => setWhiteEngine(event.target.value)}>
                             {engines.map((engine) => (
                                 <MenuItem key={engine.name} value={engine.name}>
                                     {engine.name}
@@ -357,8 +358,8 @@ export default function AIvsAI() {
                     </FormControl>
 
                     <FormControl fullWidth sx={{ mb: 3 }}>
-                        <InputLabel>Engine 2 (Black first)</InputLabel>
-                        <Select value={blackEngine} label="Engine 2 (Black first)" onChange={(event) => setBlackEngine(event.target.value)}>
+                        <InputLabel>{strings.match.engine2BlackFirst}</InputLabel>
+                        <Select value={blackEngine} label={strings.match.engine2BlackFirst} onChange={(event) => setBlackEngine(event.target.value)}>
                             {engines.map((engine) => (
                                 <MenuItem key={engine.name} value={engine.name}>
                                     {engine.name}
@@ -367,15 +368,15 @@ export default function AIvsAI() {
                         </Select>
                     </FormControl>
 
-                    <TextField label="Number of Games" type="number" fullWidth value={numGames} onChange={(event) => setNumGames(Math.max(1, parseInt(event.target.value, 10) || 1))} inputProps={{ min: 1, max: 100 }} sx={{ mb: 3 }} />
+                    <TextField label={strings.match.numberOfGames} type="number" fullWidth value={numGames} onChange={(event) => setNumGames(Math.max(1, parseInt(event.target.value, 10) || 1))} inputProps={{ min: 1, max: 100 }} sx={{ mb: 3 }} />
 
                     <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                        Time per move: {(moveTime / 1000).toFixed(1)}s
+                        {strings.match.timePerMove((moveTime / 1000).toFixed(1))}
                     </Typography>
                     {anyWeightsBased ? (
                         <Box sx={{ p: 1, mb: 3, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                One or more engines use a fixed node limit per move.
+                                {strings.match.fixedNodeLimit}
                             </Typography>
                         </Box>
                     ) : (
@@ -383,12 +384,12 @@ export default function AIvsAI() {
                     )}
 
                     <Button variant="contained" size="large" fullWidth startIcon={<PlayIcon />} onClick={handleStartMatch} disabled={!whiteEngine || !blackEngine || engines.length === 0 || isStarting}>
-                        {isStarting ? 'Starting...' : 'Start Match'}
+                        {isStarting ? strings.match.starting : strings.match.startMatch}
                     </Button>
 
                     {engines.length < 1 && (
                         <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: 'warning.main' }}>
-                            Add at least one engine in the Engines page.
+                            {strings.match.addAtLeastOneEngine}
                         </Typography>
                     )}
                 </CardContent>
@@ -401,7 +402,7 @@ export default function AIvsAI() {
             <Card sx={{ bgcolor: 'background.paper' }}>
                 <CardContent>
                     <Typography variant="subtitle2" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', mb: 1.5 }}>
-                        Match Score
+                        {strings.match.matchScore}
                     </Typography>
                     <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
                         <Box sx={{ textAlign: 'center' }}>
@@ -424,7 +425,7 @@ export default function AIvsAI() {
                     </Box>
                     <Divider sx={{ my: 1.5 }} />
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center' }}>
-                        {score.gamesPlayed}/{score.totalGames} games - {score.draws} draws
+                        {strings.match.gamesSummary(score.gamesPlayed, score.totalGames, score.draws)}
                     </Typography>
                 </CardContent>
             </Card>
@@ -456,10 +457,10 @@ export default function AIvsAI() {
     return (
         <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                Engine Matches
+                {strings.match.title}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', mb: 2, display: 'block' }}>
-                Run AI vs AI matches
+                {strings.match.subtitle}
             </Typography>
 
             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
@@ -468,64 +469,27 @@ export default function AIvsAI() {
                             <Chip
                                 label={
                                     showingHistory
-                                        ? 'History replay'
+                                        ? strings.match.historyReplay
                                         : currentGame > 0
-                                            ? `Game ${currentGame}/${numGames}`
-                                            : 'Ready to start'
+                                            ? strings.match.gameProgress(currentGame, numGames)
+                                            : strings.match.readyToStart
                                 }
                                 color="primary"
                                 size="small"
                                 variant={showingHistory ? 'filled' : 'outlined'}
                                 sx={{ height: 24, fontSize: '0.7rem' }}
                             />
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                {showingHistory && selectedHistoryEntry && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                                        {selectedHistoryEntry.white} vs {selectedHistoryEntry.black}
-                                    </Typography>
-                                )}
-                                {!showingHistory && currentWhite && currentBlack && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-                                        {currentWhite} vs {currentBlack}
-                                    </Typography>
-                                )}
-                                <Tooltip title="Theme">
-                                    <IconButton size="small" onClick={() => setShowThemes((value) => !value)} sx={{ color: 'text.secondary' }}>
-                                        <ThemeIcon fontSize="small" />
-                                    </IconButton>
-                                </Tooltip>
-                            </Box>
+                            {showingHistory && selectedHistoryEntry && (
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                                    {selectedHistoryEntry.white} vs {selectedHistoryEntry.black}
+                                </Typography>
+                            )}
+                            {!showingHistory && currentWhite && currentBlack && (
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                                    {currentWhite} vs {currentBlack}
+                                </Typography>
+                            )}
                         </Box>
-
-                        {showThemes && (
-                            <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                                {themes.map((theme) => (
-                                    <Tooltip key={theme.id} title={theme.name}>
-                                        <Box
-                                            onClick={() => {
-                                                setThemeById(theme.id);
-                                                setShowThemes(false);
-                                            }}
-                                            sx={{
-                                                width: 28,
-                                                height: 28,
-                                                borderRadius: 0.75,
-                                                cursor: 'pointer',
-                                                overflow: 'hidden',
-                                                border: appTheme.id === theme.id ? '2px solid' : '2px solid transparent',
-                                                borderColor: appTheme.id === theme.id ? 'primary.main' : 'transparent',
-                                                display: 'flex',
-                                                transition: 'border-color 0.15s',
-                                                '&:hover': { borderColor: 'primary.light' },
-                                            }}
-                                        >
-                                            <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardLight }} />
-                                            <Box sx={{ width: '50%', height: '100%', bgcolor: theme.boardDark }} />
-                                        </Box>
-                                    </Tooltip>
-                                ))}
-                            </Box>
-                        )}
 
                         <ChessboardPanel
                             fen={showingHistory ? historySnapshot.fen : currentFen}
@@ -538,19 +502,19 @@ export default function AIvsAI() {
                         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
                             {showingHistory ? (
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    Viewing a saved match game. Switch back to Current Match to start or stop live runs.
+                                    {strings.match.viewingSavedMatch}
                                 </Typography>
                             ) : isRunning ? (
                                 <Button variant="outlined" color="error" startIcon={<StopIcon />} onClick={handleStopMatch}>
-                                    Stop Match
+                                    {strings.match.stopMatch}
                                 </Button>
                             ) : results.length > 0 ? (
                                 <Button variant="contained" startIcon={<PlayIcon />} onClick={handlePrepareNewMatch}>
-                                    New Match
+                                    {strings.match.newMatch}
                                 </Button>
                             ) : (
                                 <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-                                    Configure a match on the right to start playing. Your saved history stays available in the History tab.
+                                    {strings.match.configureMatchHint}
                                 </Typography>
                             )}
                         </Box>
@@ -564,8 +528,8 @@ export default function AIvsAI() {
                                 variant="fullWidth"
                                 sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
                             >
-                                <Tab value="current" label="Current Match" />
-                                <Tab value="history" label={`Game History (${historyEntries.length})`} />
+                                <Tab value="current" label={strings.match.currentMatchTab} />
+                                <Tab value="history" label={strings.match.gameHistoryTab(historyEntries.length)} />
                             </Tabs>
                             <Box sx={{ p: 1.5 }}>
                                 {sideTab === 'current' ? renderCurrentPanel() : (
@@ -581,7 +545,7 @@ export default function AIvsAI() {
                                     onSelectPlyIndex={setSelectedHistoryPlyIndex}
                                     onDownloadPGN={handleDownloadHistoryPGN}
                                     onClearHistory={handleClearHistory}
-                                    emptyMessage="Complete a match game to add it to history."
+                                    emptyMessage={strings.match.completeMatchGameToAddHistory}
                                 />
                             )}
                             </Box>

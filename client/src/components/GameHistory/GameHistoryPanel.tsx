@@ -5,6 +5,7 @@ import { Download as DownloadIcon, FastForward as EndIcon, ChevronLeft as PrevIc
 import { Chess } from 'chess.js';
 import MoveList from '../MoveList/MoveList';
 import { useAppTheme } from '../../context/ThemeContext';
+import { useAppSettings } from '../../context/SettingsContext';
 
 type HistoryTimeFilter = 'all' | 'today' | '7d' | '30d' | '90d' | 'custom';
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -113,20 +114,24 @@ function formatDateTime(date: Date): string {
     });
 }
 
-function formatRangeSummary(startValue: string, endValue: string): string {
+function formatRangeSummary(startValue: string, endValue: string, labels: {
+    pickDates: string;
+    fromDate: (date: string) => string;
+    until: (date: string) => string;
+}): string {
     const start = parseLocalDateTime(startValue);
     const end = parseLocalDateTime(endValue);
 
     if (!start && !end) {
-        return 'Pick dates';
+        return labels.pickDates;
     }
     if (start && end) {
         return `${formatDateTime(start)} - ${formatDateTime(end)}`;
     }
     if (start) {
-        return `From ${formatDateTime(start)}`;
+        return labels.fromDate(formatDateTime(start));
     }
-    return `Until ${formatDateTime(end!)}`;
+    return labels.until(formatDateTime(end!));
 }
 
 function monthStart(date: Date): Date {
@@ -202,6 +207,7 @@ function CustomRangePicker({
     onReset: () => void;
 }) {
     const { appTheme } = useAppTheme();
+    const { strings } = useAppSettings();
     const [viewMonth, setViewMonth] = useState<Date>(() => monthStart(parseLocalDateTime(startValue) || new Date()));
     const [draftStart, setDraftStart] = useState<Date | null>(() => parseLocalDateTime(startValue));
     const [draftEnd, setDraftEnd] = useState<Date | null>(() => parseLocalDateTime(endValue));
@@ -295,7 +301,7 @@ function CustomRangePicker({
             <Stack spacing={1.5}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                            Custom Time Range
+                            {strings.history.customTimeRange}
                         </Typography>
                         <Stack direction="row" spacing={0.5}>
                             <IconButton size="small" onClick={() => setViewMonth((current) => addMonths(current, -1))}>
@@ -363,17 +369,17 @@ function CustomRangePicker({
                     <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.25 }}>
                         <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: alpha(appTheme.bgDefault, 0.28), border: '1px solid', borderColor: alpha(appTheme.primary, 0.12) }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                                From
+                                {strings.history.from}
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-                                {draftStart ? formatDateTime(draftStart) : 'Not set'}
+                                {draftStart ? formatDateTime(draftStart) : strings.common.notSet}
                             </Typography>
                             <Stack direction="row" spacing={1}>
                                 <FormControl size="small" fullWidth>
-                                    <InputLabel>Hour</InputLabel>
+                                    <InputLabel>{strings.common.hour}</InputLabel>
                                     <Select
                                         value={draftStart ? String(draftStart.getHours()) : ''}
-                                        label="Hour"
+                                        label={strings.common.hour}
                                         onChange={(event) => updateDraftTime('start', 'hours', Number(event.target.value))}
                                         disabled={!draftStart}
                                     >
@@ -385,10 +391,10 @@ function CustomRangePicker({
                                     </Select>
                                 </FormControl>
                                 <FormControl size="small" fullWidth>
-                                    <InputLabel>Min</InputLabel>
+                                    <InputLabel>{strings.common.minuteShort}</InputLabel>
                                     <Select
                                         value={draftStart ? String(draftStart.getMinutes()) : ''}
-                                        label="Min"
+                                        label={strings.common.minuteShort}
                                         onChange={(event) => updateDraftTime('start', 'minutes', Number(event.target.value))}
                                         disabled={!draftStart}
                                     >
@@ -404,17 +410,17 @@ function CustomRangePicker({
 
                         <Box sx={{ p: 1.25, borderRadius: 2, bgcolor: alpha(appTheme.bgDefault, 0.28), border: '1px solid', borderColor: alpha(appTheme.secondary, 0.14) }}>
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                                To
+                                {strings.history.to}
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-                                {draftEnd ? formatDateTime(draftEnd) : (draftStart ? formatDateTime(endOfDay(draftStart)) : 'Not set')}
+                                {draftEnd ? formatDateTime(draftEnd) : (draftStart ? formatDateTime(endOfDay(draftStart)) : strings.common.notSet)}
                             </Typography>
                             <Stack direction="row" spacing={1}>
                                 <FormControl size="small" fullWidth>
-                                    <InputLabel>Hour</InputLabel>
+                                    <InputLabel>{strings.common.hour}</InputLabel>
                                     <Select
                                         value={draftEnd ? String(draftEnd.getHours()) : (draftStart ? '23' : '')}
-                                        label="Hour"
+                                        label={strings.common.hour}
                                         onChange={(event) => updateDraftTime('end', 'hours', Number(event.target.value))}
                                         disabled={!draftStart}
                                     >
@@ -426,10 +432,10 @@ function CustomRangePicker({
                                     </Select>
                                 </FormControl>
                                 <FormControl size="small" fullWidth>
-                                    <InputLabel>Min</InputLabel>
+                                    <InputLabel>{strings.common.minuteShort}</InputLabel>
                                     <Select
                                         value={draftEnd ? String(draftEnd.getMinutes()) : (draftStart ? '59' : '')}
-                                        label="Min"
+                                        label={strings.common.minuteShort}
                                         onChange={(event) => updateDraftTime('end', 'minutes', Number(event.target.value))}
                                         disabled={!draftStart}
                                     >
@@ -445,7 +451,7 @@ function CustomRangePicker({
                     </Box>
 
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        Click one date to set the start, then another to set the end.
+                        {strings.history.clickDatesHint}
                     </Typography>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
@@ -458,14 +464,14 @@ function CustomRangePicker({
                                 onReset();
                             }}
                         >
-                            Reset
+                            {strings.common.reset}
                         </Button>
                         <Stack direction="row" spacing={1}>
                             <Button size="small" color="inherit" onClick={onClose}>
-                                Cancel
+                                {strings.common.cancel}
                             </Button>
                             <Button size="small" variant="contained" onClick={applyDraft}>
-                                Apply
+                                {strings.common.apply}
                             </Button>
                         </Stack>
                     </Box>
@@ -515,11 +521,13 @@ export default function GameHistoryPanel({
     selectedPlyIndex,
     onSelectPlyIndex,
     onDownloadPGN,
-    emptyMessage = 'No completed games yet.',
+    emptyMessage,
     onClearHistory,
     headerActions,
     auxiliaryContent,
 }: GameHistoryPanelProps) {
+    const { strings } = useAppSettings();
+    const resolvedEmptyMessage = emptyMessage ?? strings.history.noCompletedGamesYet;
     const [timeFilter, setTimeFilter] = useState<HistoryTimeFilter>('all');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
@@ -557,12 +565,12 @@ export default function GameHistoryPanel({
                 <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                            Game History
+                            {strings.history.title}
                         </Typography>
                         {headerActions}
                     </Box>
                     {onClearHistory && (
-                        <Tooltip title="Clear history">
+                        <Tooltip title={strings.history.clearHistory}>
                             <IconButton size="small" onClick={onClearHistory}>
                                 <ClearHistoryIcon fontSize="small" />
                             </IconButton>
@@ -575,7 +583,7 @@ export default function GameHistoryPanel({
                     </Box>
                 )}
                 <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                    {emptyMessage}
+                    {resolvedEmptyMessage}
                 </Typography>
             </Paper>
         );
@@ -586,38 +594,38 @@ export default function GameHistoryPanel({
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                 <Box>
                     <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                        Game History
+                        {strings.history.title}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {filteredEntries.length} shown of {entries.length} saved {entries.length === 1 ? 'game' : 'games'}
+                        {strings.history.shownSummary(filteredEntries.length, entries.length)}
                     </Typography>
                 </Box>
                 <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
                     {headerActions}
                     <Box ref={timeFilterAnchorRef}>
                     <FormControl size="small" sx={{ minWidth: 132 }}>
-                        <InputLabel>Time</InputLabel>
+                        <InputLabel>{strings.history.time}</InputLabel>
                         <Select
                             value={timeFilter}
-                            label="Time"
+                            label={strings.history.time}
                             onChange={(event) => {
                                 const nextValue = event.target.value as HistoryTimeFilter;
                                 setTimeFilter(nextValue);
                                 setCustomPickerOpen(nextValue === 'custom');
                             }}
                         >
-                            <MenuItem value="all">All time</MenuItem>
-                            <MenuItem value="today">Today</MenuItem>
-                            <MenuItem value="7d">Last 7 days</MenuItem>
-                            <MenuItem value="30d">Last 30 days</MenuItem>
-                            <MenuItem value="90d">Last 90 days</MenuItem>
-                            <MenuItem value="custom">Custom range</MenuItem>
+                            <MenuItem value="all">{strings.history.allTime}</MenuItem>
+                            <MenuItem value="today">{strings.history.today}</MenuItem>
+                            <MenuItem value="7d">{strings.history.last7Days}</MenuItem>
+                            <MenuItem value="30d">{strings.history.last30Days}</MenuItem>
+                            <MenuItem value="90d">{strings.history.last90Days}</MenuItem>
+                            <MenuItem value="custom">{strings.history.customRange}</MenuItem>
                         </Select>
                     </FormControl>
                     </Box>
                     {onClearHistory && (
                         <Button size="small" color="inherit" startIcon={<ClearHistoryIcon />} onClick={onClearHistory}>
-                            Clear
+                            {strings.common.clear}
                         </Button>
                     )}
                 </Stack>
@@ -627,9 +635,9 @@ export default function GameHistoryPanel({
                     <Divider />
                     <Box sx={{ px: 2, py: 1.25, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {formatRangeSummary(customStart, customEnd)}
+                            {formatRangeSummary(customStart, customEnd, strings.history)}
                         </Typography>
-                        <Tooltip title="Edit custom range">
+                        <Tooltip title={strings.history.editCustomRange}>
                             <IconButton size="small" onClick={() => setCustomPickerOpen(true)}>
                                 <CalendarIcon fontSize="small" />
                             </IconButton>
@@ -671,7 +679,7 @@ export default function GameHistoryPanel({
             {filteredEntries.length === 0 ? (
                 <Box sx={{ p: 2.5 }}>
                     <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                        No saved games match this time filter.
+                        {strings.history.noSavedGamesMatch}
                     </Typography>
                 </Box>
             ) : (
@@ -702,7 +710,7 @@ export default function GameHistoryPanel({
                                         {entry.subtitle}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-                                        {new Date(entry.createdAt).toLocaleString()} · {entry.moves.length} plies
+                                        {new Date(entry.createdAt).toLocaleString()} · {strings.history.plies(entry.moves.length)}
                                     </Typography>
                                 </Box>
                             </ListItemButton>
@@ -725,9 +733,9 @@ export default function GameHistoryPanel({
                                 </Box>
                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                                     <Chip label={resultLabel(selectedEntry.result)} size="small" color="primary" variant="outlined" />
-                                    <Chip label={`${selectedEntry.moves.length} plies`} size="small" variant="outlined" />
+                                    <Chip label={strings.history.plies(selectedEntry.moves.length)} size="small" variant="outlined" />
                                     {selectedEntry.pgn && (
-                                        <Tooltip title="Download PGN">
+                                        <Tooltip title={strings.common.downloadPgn}>
                                             <IconButton size="small" onClick={() => onDownloadPGN?.(selectedEntry)}>
                                                 <DownloadIcon fontSize="small" />
                                             </IconButton>
@@ -737,24 +745,24 @@ export default function GameHistoryPanel({
                             </Box>
                             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
                                 <Button size="small" startIcon={<StartIcon />} onClick={() => onSelectPlyIndex(0)} disabled={boundedPlyIndex === 0}>
-                                    Start
+                                    {strings.history.start}
                                 </Button>
                                 <Button size="small" startIcon={<PrevIcon />} onClick={() => onSelectPlyIndex(boundedPlyIndex - 1)} disabled={boundedPlyIndex === 0}>
-                                    Prev
+                                    {strings.history.prev}
                                 </Button>
                                 <Button size="small" endIcon={<NextIcon />} onClick={() => onSelectPlyIndex(boundedPlyIndex + 1)} disabled={boundedPlyIndex >= selectedEntry.moves.length}>
-                                    Next
+                                    {strings.history.next}
                                 </Button>
                                 <Button size="small" endIcon={<EndIcon />} onClick={() => onSelectPlyIndex(selectedEntry.moves.length)} disabled={boundedPlyIndex >= selectedEntry.moves.length}>
-                                    End
+                                    {strings.history.end}
                                 </Button>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', ml: 'auto' }}>
-                                    Position {boundedPlyIndex} / {selectedEntry.moves.length}
+                                    {strings.history.position(boundedPlyIndex, selectedEntry.moves.length)}
                                 </Typography>
                             </Box>
                             <Box sx={{ minHeight: 220 }}>
                                 <MoveList
-                                    title="Replay Moves"
+                                    title={strings.history.replayMoves}
                                     moves={selectedEntry.moves}
                                     currentMoveIndex={boundedPlyIndex > 0 ? boundedPlyIndex - 1 : undefined}
                                     onMoveSelect={(moveIndex) => onSelectPlyIndex(moveIndex + 1)}

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { useAppSettings } from '../../context/SettingsContext';
 export interface BoardTheme {
     name: string;
     light: string;
@@ -43,6 +44,7 @@ interface ChessboardPanelProps {
 }
 export default function ChessboardPanel({ fen, onMove, orientation = 'white', interactive = true, lastMove = null, arrows = [], boardTheme = DEFAULT_BOARD_THEME, }: ChessboardPanelProps) {
     const theme = useTheme();
+    const { animationsEnabled, showBoardCoordinates } = useAppSettings();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
@@ -370,14 +372,15 @@ export default function ChessboardPanel({ fen, onMove, orientation = 'white', in
             lightSquareStyle: { backgroundColor: boardTheme.light },
             boardStyle: { borderRadius: '6px' },
             dropSquareStyle: { boxShadow: `inset 0 0 1px 5px ${boardTheme.selected}` },
-            showAnimations: true,
-            animationDurationInMs: 48,
+            showAnimations: animationsEnabled,
+            animationDurationInMs: animationsEnabled ? 48 : 0,
             draggingPieceStyle: { cursor: 'grabbing', filter: 'drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45))' },
             draggingPieceGhostStyle: { opacity: '0.45' },
             allowDragging: canInteract,
             dragActivationDistance: 3,
             arrows: boardArrows,
             allowDrawingArrows: false,
+            showNotation: showBoardCoordinates,
         }}/>
         </Box>);
 }

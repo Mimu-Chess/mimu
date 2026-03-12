@@ -1,12 +1,15 @@
 import { Box, Typography, Paper, Chip } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { useAppSettings } from '../../context/SettingsContext';
 interface MoveListProps {
     moves: string[];
     currentMoveIndex?: number;
     onMoveSelect?: (moveIndex: number) => void;
     title?: string;
 }
-export default function MoveList({ moves, currentMoveIndex, onMoveSelect, title = 'Moves' }: MoveListProps) {
+export default function MoveList({ moves, currentMoveIndex, onMoveSelect, title }: MoveListProps) {
+    const { strings } = useAppSettings();
+    const resolvedTitle = title ?? strings.moveList.title;
     const movePairs: {
         number: number;
         white: string;
@@ -33,11 +36,11 @@ export default function MoveList({ moves, currentMoveIndex, onMoveSelect, title 
             },
         }}>
             <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>
-                {title}
+                {resolvedTitle}
             </Typography>
 
             {movePairs.length === 0 ? (<Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                    No moves yet
+                    {strings.moveList.noMovesYet}
                 </Typography>) : (<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                     {movePairs.map((pair, idx) => {
                 const whiteIdx = idx * 2;

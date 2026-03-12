@@ -9,6 +9,7 @@ import GameHistoryPanel, { buildHistoryPlayback, type GameHistoryEntry } from '.
 import { useSocket } from '../../hooks/useSocket';
 import { useAppTheme } from '../../context/ThemeContext';
 import { serverUrl } from '../../lib/server';
+import { useAppSettings } from '../../context/SettingsContext';
 
 const UPLOADED_ENTRY_ID = '__uploaded_pgn__';
 
@@ -18,11 +19,11 @@ interface AnalysisProgress {
 }
 function formatScore(score?: { type: 'cp' | 'mate'; value: number } | null) { if (!score) return '-'; if (score.type === 'mate') return `M${score.value > 0 ? '+' : ''}${score.value}`; const value = score.value / 100; return `${value > 0 ? '+' : ''}${value.toFixed(2)}`; }
 function isUciMove(move: string | null | undefined): move is string { return !!move && /^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(move); }
-function formatBestmove(bestmove: string | null | undefined) { if (!isUciMove(bestmove)) return 'No move yet'; const promotion = bestmove.length > 4 ? `=${bestmove[4].toUpperCase()}` : ''; return `${bestmove.slice(0, 2)}-${bestmove.slice(2, 4)}${promotion}`; }
+function formatBestmove(bestmove: string | null | undefined, fallback: string) { if (!isUciMove(bestmove)) return fallback; const promotion = bestmove.length > 4 ? `=${bestmove[4].toUpperCase()}` : ''; return `${bestmove.slice(0, 2)}-${bestmove.slice(2, 4)}${promotion}`; }
 function getPvMove(pv?: string) { const move = pv?.trim().split(/\s+/)[0]; return isUciMove(move) ? move : null; }
 function parseArrow(bestmove: string | null | undefined) { if (!isUciMove(bestmove)) return null; return { from: bestmove.slice(0, 2), to: bestmove.slice(2, 4) }; }
-function getPositionLabel(plyIndex: number, moves: string[]) { if (plyIndex === 0) return 'Start position'; const previousMove = moves[plyIndex - 1]; return previousMove ? `After ${previousMove}` : 'Position'; }
-function getSideToMove(fen: string): 'White' | 'Black' { return fen.split(' ')[1] === 'b' ? 'Black' : 'White'; }
+function getPositionLabel(plyIndex: number, moves: string[], labels: { startPosition: string; afterMove: (move: string) => string; position: string }) { if (plyIndex === 0) return labels.startPosition; const previousMove = moves[plyIndex - 1]; return previousMove ? labels.afterMove(previousMove) : labels.position; }
+function getSideToMove(fen: string, labels: { white: string; black: string }): string { return fen.split(' ')[1] === 'b' ? labels.black : labels.white; }
 function stripPgnExtension(fileName: string) { return fileName.replace(/\.(pgn|txt)$/i, ''); }
 function parsePgnDate(rawDate: string | undefined) { if (!rawDate) return new Date().toISOString(); const [year, month, day] = rawDate.split('.').map(Number); if ([year, month, day].some((part) => Number.isNaN(part) || part <= 0)) return new Date().toISOString(); return new Date(year, month - 1, day).toISOString(); }
 function getFileNameFromPath(fullPath: string) { return fullPath.split(/[\\/]/).pop() || fullPath; }
@@ -42,6 +43,7 @@ function createImportedEntry(fileName: string, pgn: string): GameHistoryEntry {
 export default function GameAnalysisPanel() {
     const { emit, on, off } = useSocket();
     const { appTheme } = useAppTheme();
+    const { strings } = useAppSettings();
     const [engines, setEngines] = useState<EngineConfig[]>([]);
     const [selectedEngine, setSelectedEngine] = useState('');
     const [historyEntries, setHistoryEntries] = useState<GameHistoryEntry[]>([]);
@@ -54,7 +56,7 @@ export default function GameAnalysisPanel() {
     const [currentAnalyzingPly, setCurrentAnalyzingPly] = useState<number | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'info' });
-    const [fileBrowser, setFileBrowser] = useState<{ open: boolean; accept: string[]; title: string }>({ open: false, accept: [], title: 'Browse' });
+    const [fileBrowser, setFileBrowser] = useState<{ open: boolean; accept: string[]; title: string }>({ open: false, accept: [], title: strings.fileBrowser.title });
     useEffect(() => {
         emit('engine:list', (list: EngineConfig[]) => {
             setEngines(list);
@@ -93,13 +95,13 @@ export default function GameAnalysisPanel() {
             setIsAnalyzing(false);
             setCurrentAnalyzingPly(null);
             setLiveAnalysisInfo(null);
-            setSnackbar({ open: true, message: `Analysis finished for ${payload.analyzedPositions} positions.`, severity: 'success' });
+            setSnackbar({ open: true, message: strings.analysis.analysisFinished(payload.analyzedPositions), severity: 'success' });
         };
         const handleAnalysisError = (payload: { error?: string }) => {
             setIsAnalyzing(false);
             setCurrentAnalyzingPly(null);
             setLiveAnalysisInfo(null);
-            setSnackbar({ open: true, message: payload?.error || 'Analysis failed', severity: 'error' });
+            setSnackbar({ open: true, message: payload?.error || strings.analysis.analysisFailed, severity: 'error' });
         };
         on('history:saved', handleHistorySaved);
         on('history:cleared', handleHistoryCleared);
@@ -168,15 +170,23 @@ export default function GameAnalysisPanel() {
     const historySnapshot = historyPlayback[historySnapshotIndex];
     const selectedEngineConfig = engines.find((engine) => engine.name === selectedEngine);
     const isWeightsBased = selectedEngineConfig?.hasWeightsFile ?? false;
+    const analysisLabels = useMemo(() => ({
+        startPosition: strings.analysis.startPosition,
+        afterMove: strings.analysis.afterMove,
+        position: strings.analysis.position,
+        white: strings.analysis.whiteToMove,
+        black: strings.analysis.blackToMove,
+        noMoveYet: strings.analysis.noMoveYet,
+    }), [strings.analysis]);
     const currentAnalysis = analysisResults[historySnapshotIndex] ?? null;
     const isCurrentPositionThinking = isAnalyzing && currentAnalyzingPly === historySnapshotIndex;
     const displayedEngineInfo = currentAnalysis?.info ?? (isCurrentPositionThinking ? liveAnalysisInfo : null);
     const suggestedMove = currentAnalysis?.bestmove || (isCurrentPositionThinking ? getPvMove(liveAnalysisInfo?.pv) : null);
     const suggestedArrow = parseArrow(suggestedMove);
     const nextPlayedMove = selectedHistoryEntry?.moves[historySnapshotIndex] ?? null;
-    const currentPositionLabel = selectedHistoryEntry ? getPositionLabel(historySnapshotIndex, selectedHistoryEntry.moves) : 'No game selected';
+    const currentPositionLabel = selectedHistoryEntry ? getPositionLabel(historySnapshotIndex, selectedHistoryEntry.moves, analysisLabels) : strings.analysis.noGameSelected;
     const analyzedCount = Object.keys(analysisResults).length;
-    const sideToMove = getSideToMove(historySnapshot.fen);
+    const sideToMove = getSideToMove(historySnapshot.fen, analysisLabels);
     const isImportedEntry = selectedHistoryId === UPLOADED_ENTRY_ID;
     const boardTheme = useMemo(() => ({
         name: appTheme.name,
@@ -222,7 +232,7 @@ export default function GameAnalysisPanel() {
         }, (response: { success: boolean; error?: string }) => {
             if (!response?.success) {
                 setIsAnalyzing(false);
-                setSnackbar({ open: true, message: response?.error || 'Could not start analysis', severity: 'error' });
+                setSnackbar({ open: true, message: response?.error || strings.analysis.couldNotStartAnalysis, severity: 'error' });
             }
         });
     }, [emit, historyPlayback, moveTime, selectedEngine, selectedHistoryEntry]);
@@ -250,16 +260,16 @@ export default function GameAnalysisPanel() {
             const response = await fetch(serverUrl(`/api/files/read?path=${encodeURIComponent(fullPath)}`));
             const payload = await response.json();
             if (!response.ok) {
-                throw new Error(payload.error || 'Could not load PGN');
+                throw new Error(payload.error || strings.analysis.couldNotLoadPgn);
             }
             const entry = createImportedEntry(getFileNameFromPath(fullPath), payload.content);
             setUploadedEntry(entry);
             setSelectedHistoryId(UPLOADED_ENTRY_ID);
             setSelectedHistoryPlyIndex(0);
-            setSnackbar({ open: true, message: `Loaded PGN: ${entry.title}`, severity: 'success' });
+            setSnackbar({ open: true, message: strings.analysis.loadedPgn(entry.title), severity: 'success' });
         }
         catch (error) {
-            setSnackbar({ open: true, message: error instanceof Error ? error.message : 'Could not load PGN', severity: 'error' });
+            setSnackbar({ open: true, message: error instanceof Error ? error.message : strings.analysis.couldNotLoadPgn, severity: 'error' });
         }
     }, []);
     const clearUploadedPgn = useCallback(() => {
@@ -269,52 +279,52 @@ export default function GameAnalysisPanel() {
     }, [historyEntries]);
     return (
         <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>Game Analysis</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mb: 2, display: 'block' }}>Step through each board position and see the engine&apos;s best move for the side to play.</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>{strings.analysis.title}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', mb: 2, display: 'block' }}>{strings.analysis.subtitle}</Typography>
             <Box sx={{ display: 'grid', gap: 2, alignItems: 'start', gridTemplateColumns: { xs: '1fr', xl: 'minmax(320px, 520px) minmax(340px, 640px)' } }}>
                 <Box sx={{ minWidth: 0 }}>
                     <Box sx={{ width: 'min(100%, 520px)', display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <IconButton onClick={goToPreviousPosition} disabled={!selectedHistoryEntry || historySnapshotIndex === 0} color="primary"><PrevIcon /></IconButton>
                         <Box sx={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-                            <Chip label={selectedHistoryEntry ? `Position ${historySnapshotIndex}/${selectedHistoryEntry.moves.length}` : 'No game selected'} color="primary" size="small" variant="outlined" sx={{ height: 24, fontSize: '0.7rem', mb: 0.5 }} />
+                            <Chip label={selectedHistoryEntry ? strings.analysis.positionCounter(historySnapshotIndex, selectedHistoryEntry.moves.length) : strings.analysis.noGameSelected} color="primary" size="small" variant="outlined" sx={{ height: 24, fontSize: '0.7rem', mb: 0.5 }} />
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>{currentPositionLabel}</Typography>
                         </Box>
                         <IconButton onClick={goToNextPosition} disabled={!selectedHistoryEntry || historySnapshotIndex >= maxPlyIndex} color="primary"><NextIcon /></IconButton>
                     </Box>
                     <ChessboardPanel fen={historySnapshot.fen} orientation="white" interactive={false} lastMove={historySnapshot.lastMove} arrows={suggestedArrow ? [{ ...suggestedArrow, color: 'rgba(56, 189, 248, 0.92)' }] : []} boardTheme={boardTheme} />
-                    <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>Use the left and right buttons, or your keyboard arrow keys, to move through positions.</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>{strings.analysis.navigationHint}</Typography>
                     <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5, width: 'min(100%, 520px)' }}>
                         <Card sx={{ bgcolor: 'background.paper' }}>
                             <CardContent sx={{ p: 2.25 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}><AnalysisIcon sx={{ color: 'primary.main', fontSize: 20 }} /><Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Current Position</Typography></Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}><AnalysisIcon sx={{ color: 'primary.main', fontSize: 20 }} /><Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{strings.analysis.currentPosition}</Typography></Box>
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-                                    <Chip label={`${sideToMove} to move`} size="small" variant="outlined" />
-                                    {isImportedEntry && <Chip label="Uploaded PGN" size="small" color="secondary" variant="outlined" />}
-                                    <Chip label={`Best: ${formatBestmove(suggestedMove)}`} size="small" color={suggestedMove ? 'primary' : 'default'} variant={suggestedMove ? 'filled' : 'outlined'} />
-                                    <Chip label={`Eval: ${formatScore(displayedEngineInfo?.score)}`} size="small" variant="outlined" />
-                                    <Chip label={`Depth: ${displayedEngineInfo?.depth ?? '-'}`} size="small" variant="outlined" />
+                                    <Chip label={strings.analysis.toMove(sideToMove)} size="small" variant="outlined" />
+                                    {isImportedEntry && <Chip label={strings.analysis.uploadedPgn} size="small" color="secondary" variant="outlined" />}
+                                    <Chip label={strings.analysis.best(formatBestmove(suggestedMove, analysisLabels.noMoveYet))} size="small" color={suggestedMove ? 'primary' : 'default'} variant={suggestedMove ? 'filled' : 'outlined'} />
+                                    <Chip label={strings.analysis.eval(formatScore(displayedEngineInfo?.score))} size="small" variant="outlined" />
+                                    <Chip label={strings.analysis.depth(displayedEngineInfo?.depth ?? '-')} size="small" variant="outlined" />
                                 </Box>
-                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>{nextPlayedMove ? `Played in game: ${nextPlayedMove}` : 'Final board position'}</Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{suggestedMove ? `Arrow shows the engine recommendation from this exact position: ${formatBestmove(suggestedMove)}.` : isCurrentPositionThinking ? 'The engine is currently searching this position.' : 'Run analysis to see the best move for this position.'}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>{nextPlayedMove ? strings.analysis.playedInGame(nextPlayedMove) : strings.analysis.finalBoardPosition}</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{suggestedMove ? strings.analysis.recommendation(formatBestmove(suggestedMove, analysisLabels.noMoveYet)) : isCurrentPositionThinking ? strings.analysis.engineSearching : strings.analysis.runAnalysisHint}</Typography>
                             </CardContent>
                         </Card>
                         <Card sx={{ bgcolor: 'background.paper' }}>
                             <CardContent sx={{ p: 2.25 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><AnalysisIcon sx={{ color: 'primary.main', fontSize: 20 }} /><Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Analysis Setup</Typography></Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}><AnalysisIcon sx={{ color: 'primary.main', fontSize: 20 }} /><Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{strings.analysis.analysisSetup}</Typography></Box>
                                 <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                                    <InputLabel>Engine</InputLabel>
-                                    <Select value={selectedEngine} label="Engine" onChange={(event) => setSelectedEngine(event.target.value)}>{engines.map((engine) => <MenuItem key={engine.name} value={engine.name}>{engine.name}</MenuItem>)}</Select>
+                                    <InputLabel>{strings.common.engine}</InputLabel>
+                                    <Select value={selectedEngine} label={strings.common.engine} onChange={(event) => setSelectedEngine(event.target.value)}>{engines.map((engine) => <MenuItem key={engine.name} value={engine.name}>{engine.name}</MenuItem>)}</Select>
                                 </FormControl>
-                                <Typography variant="caption" sx={{ mb: 0.5, color: 'text.secondary', display: 'block' }}>Analysis time: {(moveTime / 1000).toFixed(1)}s</Typography>
-                                {isWeightsBased ? <Box sx={{ p: 1, mb: 2, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}><Typography variant="caption" sx={{ color: 'text.secondary' }}>This engine uses nodes = {selectedEngineConfig?.nodes ?? 1} for analysis.</Typography></Box> : <Slider value={moveTime} onChange={(_, value) => setMoveTime(value as number)} min={500} max={10000} step={500} valueLabelDisplay="auto" valueLabelFormat={(value) => `${(value / 1000).toFixed(1)}s`} size="small" sx={{ mb: 2 }} />}
+                                <Typography variant="caption" sx={{ mb: 0.5, color: 'text.secondary', display: 'block' }}>{strings.analysis.analysisTime((moveTime / 1000).toFixed(1))}</Typography>
+                                {isWeightsBased ? <Box sx={{ p: 1, mb: 2, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}><Typography variant="caption" sx={{ color: 'text.secondary' }}>{strings.analysis.nodesForAnalysis(selectedEngineConfig?.nodes ?? 1)}</Typography></Box> : <Slider value={moveTime} onChange={(_, value) => setMoveTime(value as number)} min={500} max={10000} step={500} valueLabelDisplay="auto" valueLabelFormat={(value) => `${(value / 1000).toFixed(1)}s`} size="small" sx={{ mb: 2 }} />}
                                 <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                                    <Button variant="contained" startIcon={<AnalyzeIcon />} onClick={handleAnalyze} disabled={!selectedEngine || !selectedHistoryEntry} fullWidth>Analyze Game</Button>
-                                    <Button variant="outlined" color="inherit" startIcon={<StopIcon />} onClick={handleStop} disabled={!isAnalyzing}>Stop</Button>
+                                    <Button variant="contained" startIcon={<AnalyzeIcon />} onClick={handleAnalyze} disabled={!selectedEngine || !selectedHistoryEntry} fullWidth>{strings.analysis.analyzeGame}</Button>
+                                    <Button variant="outlined" color="inherit" startIcon={<StopIcon />} onClick={handleStop} disabled={!isAnalyzing}>{strings.analysis.stop}</Button>
                                 </Box>
                                 <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                    <Chip label={`Analyzed: ${analyzedCount}/${historyPlayback.length}`} size="small" variant="outlined" />
-                                    <Chip label={`Current best: ${formatBestmove(suggestedMove)}`} size="small" variant="outlined" />
-                                    {selectedHistoryEntry && <Chip label={isImportedEntry ? 'Imported PGN' : selectedHistoryEntry.mode === 'match' ? 'Match history' : 'Play history'} size="small" variant="outlined" />}
+                                    <Chip label={strings.analysis.analyzedCount(analyzedCount, historyPlayback.length)} size="small" variant="outlined" />
+                                    <Chip label={strings.analysis.currentBest(formatBestmove(suggestedMove, analysisLabels.noMoveYet))} size="small" variant="outlined" />
+                                    {selectedHistoryEntry && <Chip label={isImportedEntry ? strings.analysis.importedPgn : selectedHistoryEntry.mode === 'match' ? strings.analysis.matchHistory : strings.analysis.playHistory} size="small" variant="outlined" />}
                                 </Box>
                             </CardContent>
                         </Card>
@@ -330,8 +340,8 @@ export default function GameAnalysisPanel() {
                         onSelectPlyIndex={setSelectedHistoryPlyIndex}
                         onDownloadPGN={handleDownloadHistoryPGN}
                         onClearHistory={handleClearHistory}
-                        emptyMessage="Finish a game or match to analyze it later."
-                        headerActions={<Button size="small" variant="outlined" color="inherit" startIcon={<UploadIcon />} onClick={() => setFileBrowser({ open: true, accept: ['.pgn', '.txt'], title: 'Select PGN File' })}>Upload PGN</Button>}
+                        emptyMessage={strings.analysis.analyzeLater}
+                        headerActions={<Button size="small" variant="outlined" color="inherit" startIcon={<UploadIcon />} onClick={() => setFileBrowser({ open: true, accept: ['.pgn', '.txt'], title: strings.analysis.selectPgnFile })}>{strings.analysis.uploadPgn}</Button>}
                         auxiliaryContent={uploadedEntry ? (
                             <Paper
                                 variant="outlined"
@@ -345,15 +355,15 @@ export default function GameAnalysisPanel() {
                                     <Box sx={{ minWidth: 0 }}>
                                         <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{uploadedEntry.title}</Typography>
                                         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
-                                            Temporary PGN upload. This is not saved in history.
+                                            {strings.analysis.temporaryPgnUpload}
                                         </Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                         <Button size="small" variant={selectedHistoryId === UPLOADED_ENTRY_ID ? 'contained' : 'outlined'} onClick={() => { setSelectedHistoryId(UPLOADED_ENTRY_ID); setSelectedHistoryPlyIndex(0); }}>
-                                            Use PGN
+                                            {strings.analysis.usePgn}
                                         </Button>
                                         <Button size="small" color="inherit" onClick={clearUploadedPgn}>
-                                            Remove
+                                            {strings.common.remove}
                                         </Button>
                                     </Box>
                                 </Box>
@@ -361,8 +371,8 @@ export default function GameAnalysisPanel() {
                         ) : undefined}
                     />
                     <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Move-by-Move Analysis</Typography>
-                        {!selectedHistoryEntry ? <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>Choose a saved game or upload a PGN to begin analysis.</Typography> : (
+                        <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{strings.analysis.moveByMoveAnalysis}</Typography>
+                        {!selectedHistoryEntry ? <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>{strings.analysis.chooseSavedGame}</Typography> : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, maxHeight: 320, overflow: 'auto' }}>
                                 {historyPlayback.map((snapshot, plyIndex) => {
                                     const result = analysisResults[plyIndex];
@@ -373,11 +383,11 @@ export default function GameAnalysisPanel() {
                                         <Box key={plyIndex} onClick={() => setSelectedHistoryPlyIndex(plyIndex)} sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', border: '1px solid', borderColor: selected ? 'primary.main' : 'divider', bgcolor: selected ? 'action.selected' : 'transparent', display: 'grid', gridTemplateColumns: '56px minmax(0, 1fr) auto auto', gap: 1, alignItems: 'center' }}>
                                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>{plyIndex}</Typography>
                                             <Box sx={{ minWidth: 0 }}>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{getPositionLabel(plyIndex, selectedHistoryEntry.moves)}</Typography>
-                                                <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>{playedMove ? `Game move: ${playedMove}` : `${getSideToMove(snapshot.fen)} to move`}</Typography>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>{getPositionLabel(plyIndex, selectedHistoryEntry.moves, analysisLabels)}</Typography>
+                                                <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>{playedMove ? strings.analysis.gameMove(playedMove) : strings.analysis.toMove(getSideToMove(snapshot.fen, analysisLabels))}</Typography>
                                             </Box>
                                             <Chip label={result ? formatScore(result.info?.score) : (rowThinking ? '...' : '-')} size="small" variant="outlined" />
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 88, textAlign: 'right' }}>{result ? formatBestmove(result.bestmove) : (rowThinking ? formatBestmove(getPvMove(liveAnalysisInfo?.pv)) : '')}</Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', minWidth: 88, textAlign: 'right' }}>{result ? formatBestmove(result.bestmove, analysisLabels.noMoveYet) : (rowThinking ? formatBestmove(getPvMove(liveAnalysisInfo?.pv), analysisLabels.noMoveYet) : '')}</Typography>
                                         </Box>
                                     );
                                 })}

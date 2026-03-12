@@ -1,13 +1,31 @@
+export type AppColorMode = 'dark' | 'light';
+export type AppLanguage = 'en' | 'es' | 'zh-CN';
+export type AppViewId = 'play' | 'match' | 'analysis' | 'engines' | 'settings';
+
 type DesktopSettings = {
     themeId?: string;
     onboardingCompleted?: boolean;
     customThemeColor?: string;
+    colorMode?: AppColorMode;
+    language?: AppLanguage;
+    animationsEnabled?: boolean;
+    showBoardCoordinates?: boolean;
+    compactSidebar?: boolean;
+    rememberLastView?: boolean;
+    lastView?: AppViewId;
 };
 
 export const DEFAULT_DESKTOP_SETTINGS: Required<DesktopSettings> = {
     themeId: 'cappuccino',
     onboardingCompleted: false,
     customThemeColor: '#7c4dff',
+    colorMode: 'dark',
+    language: 'en',
+    animationsEnabled: true,
+    showBoardCoordinates: true,
+    compactSidebar: false,
+    rememberLastView: true,
+    lastView: 'play',
 };
 
 const LOCAL_SETTINGS_STORAGE_KEY = 'mimu-chess:desktop-settings';
@@ -70,6 +88,40 @@ function sanitizeDesktopSettings(value: unknown): DesktopSettings {
         next.customThemeColor = raw.customThemeColor;
     }
 
+    if (raw.colorMode === 'dark' || raw.colorMode === 'light') {
+        next.colorMode = raw.colorMode;
+    }
+
+    if (raw.language === 'en' || raw.language === 'es' || raw.language === 'zh-CN') {
+        next.language = raw.language;
+    }
+
+    if (typeof raw.animationsEnabled === 'boolean') {
+        next.animationsEnabled = raw.animationsEnabled;
+    }
+
+    if (typeof raw.showBoardCoordinates === 'boolean') {
+        next.showBoardCoordinates = raw.showBoardCoordinates;
+    }
+
+    if (typeof raw.compactSidebar === 'boolean') {
+        next.compactSidebar = raw.compactSidebar;
+    }
+
+    if (typeof raw.rememberLastView === 'boolean') {
+        next.rememberLastView = raw.rememberLastView;
+    }
+
+    if (
+        raw.lastView === 'play'
+        || raw.lastView === 'match'
+        || raw.lastView === 'analysis'
+        || raw.lastView === 'engines'
+        || raw.lastView === 'settings'
+    ) {
+        next.lastView = raw.lastView;
+    }
+
     return next;
 }
 
@@ -84,6 +136,10 @@ function readLocalSettings(): DesktopSettings {
     catch {
         return {};
     }
+}
+
+export function readStoredDesktopSettingsSync(): Partial<DesktopSettings> {
+    return readLocalSettings();
 }
 
 function writeLocalSettings(settings: DesktopSettings): void {

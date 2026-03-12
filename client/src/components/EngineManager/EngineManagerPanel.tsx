@@ -4,6 +4,7 @@ import { alpha } from '@mui/material/styles';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Memory as EngineIcon, CheckCircle as ReadyIcon, FolderOpen as FolderIcon, AccountTree as WeightsIcon, } from '@mui/icons-material';
 import { useSocket } from '../../hooks/useSocket';
 import FileBrowserDialog from './FileBrowserDialog';
+import { useAppSettings } from '../../context/SettingsContext';
 
 interface EngineConfig {
     name: string;
@@ -31,6 +32,7 @@ function isWindowsRuntime() {
 
 export default function EngineManagerPanel() {
     const { emit, on } = useSocket();
+    const { strings } = useAppSettings();
     const windowsRuntime = isWindowsRuntime();
     const executableAccept = windowsRuntime ? ['.exe'] : [];
     const executablePlaceholder = windowsRuntime ? 'e.g., C:\\engines\\stockfish.exe' : 'e.g., /usr/local/bin/stockfish';
@@ -49,7 +51,7 @@ export default function EngineManagerPanel() {
         accept: string[];
         onSelect: (p: string) => void;
         title: string;
-    }>({ open: false, accept: [], onSelect: () => { }, title: 'Browse' });
+    }>({ open: false, accept: [], onSelect: () => { }, title: strings.fileBrowser.title });
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -143,7 +145,7 @@ export default function EngineManagerPanel() {
             setIsSaving(false);
             setSnackbar({
                 open: true,
-                message: 'Engine validation timed out. Make sure this is a UCI executable and try again.',
+                message: strings.engines.engineValidationTimedOut,
                 severity: 'error',
             });
         }, timeoutMs);
@@ -178,15 +180,15 @@ export default function EngineManagerPanel() {
                 setSnackbar({
                     open: true,
                     message: isEditing
-                        ? `Engine "${savedName}" updated successfully!`
-                        : `Engine "${savedName}" added successfully!`,
+                        ? strings.engines.engineUpdated(savedName)
+                        : strings.engines.engineAdded(savedName),
                     severity: 'success',
                 });
             }
             else {
                 setSnackbar({
                     open: true,
-                    message: response.error || (isEditing ? 'Failed to update engine' : 'Failed to add engine'),
+                    message: response.error || (isEditing ? strings.engines.failedToUpdateEngine : strings.engines.failedToAddEngine),
                     severity: 'error',
                 });
             }
@@ -196,7 +198,7 @@ export default function EngineManagerPanel() {
     const handleRemoveEngine = (name: string) => {
         emit('engine:remove', { name }, (response: any) => {
             if (response.success) {
-                setSnackbar({ open: true, message: `Engine "${name}" removed`, severity: 'success' });
+                setSnackbar({ open: true, message: strings.engines.engineRemoved(name), severity: 'success' });
             }
         });
     };
@@ -206,14 +208,14 @@ export default function EngineManagerPanel() {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
                 <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        Engines
+                        {strings.engines.title}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        Manage your UCI chess engines
+                        {strings.engines.subtitle}
                     </Typography>
                 </Box>
                 <Button data-tour="engines-add-button" variant="contained" startIcon={<AddIcon />} onClick={openAddDialog}>
-                    Add Engine
+                    {strings.engines.addEngine}
                 </Button>
             </Box>
 
@@ -229,13 +231,13 @@ export default function EngineManagerPanel() {
                     <CardContent>
                         <EngineIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
-                            No engines configured
+                            {strings.engines.noEnginesConfigured}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                            Add any UCI-compatible engine. Engines that use a separate weights file (e.g. LC0, Maia, Leela) are also supported.
+                            {strings.engines.noEnginesDescription}
                         </Typography>
                         <Button variant="contained" startIcon={<AddIcon />} onClick={openAddDialog}>
-                            Add Your First Engine
+                            {strings.engines.addFirstEngine}
                         </Button>
                     </CardContent>
                 </Card>
@@ -257,7 +259,7 @@ export default function EngineManagerPanel() {
                                         {engine.hasWeightsFile ? (
                                             <Chip
                                                 icon={<WeightsIcon sx={{ fontSize: 14 }} />}
-                                                label={`Weights nodes=${engine.nodes ?? 1}`}
+                                                label={strings.engines.weightsNodes(engine.nodes ?? 1)}
                                                 size="small"
                                                 color="secondary"
                                                 variant="outlined"
@@ -266,7 +268,7 @@ export default function EngineManagerPanel() {
                                         ) : (
                                             <Chip
                                                 icon={<ReadyIcon sx={{ fontSize: 14 }} />}
-                                                label="UCI"
+                                                label={strings.engines.uci}
                                                 size="small"
                                                 color="success"
                                                 variant="outlined"
@@ -309,13 +311,13 @@ export default function EngineManagerPanel() {
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ fontWeight: 600 }}>
-                    {editingEngine ? 'Edit UCI Engine' : 'Add UCI Engine'}
+                    {editingEngine ? strings.engines.editEngine : strings.engines.addUciEngine}
                 </DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
                         {editingEngine
-                            ? 'Update the engine name, executable path, and optional weights configuration.'
-                            : 'Enter the name and full path to the UCI engine executable.'}
+                            ? strings.engines.updateEngineDescription
+                            : strings.engines.addEngineDescription}
                     </Typography>
 
                     <FormControlLabel
@@ -330,7 +332,7 @@ export default function EngineManagerPanel() {
                         label={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 <WeightsIcon sx={{ fontSize: 16, color: useWeightsFile ? 'secondary.main' : 'text.disabled' }} />
-                                <Typography variant="body2">Uses a weights file</Typography>
+                                <Typography variant="body2">{strings.engines.usesWeightsFile}</Typography>
                             </Box>
                         }
                         sx={{ mb: 2, ml: 0 }}
@@ -347,8 +349,7 @@ export default function EngineManagerPanel() {
                             }}
                         >
                             <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 600 }}>
-                                The engine will receive a <code>setoption name WeightsFile</code> command before it is ready.
-                                Supported by LC0, Leela Chess Zero, Maia, and other neural-network engines.
+                                {strings.engines.weightsInfo}
                             </Typography>
                         </Box>
                     )}
@@ -357,8 +358,8 @@ export default function EngineManagerPanel() {
 
                     <TextField
                         autoFocus
-                        label="Engine Name"
-                        placeholder="e.g., Stockfish 16"
+                        label={strings.engines.engineName}
+                        placeholder={strings.engines.engineNamePlaceholder}
                         fullWidth
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
@@ -366,23 +367,23 @@ export default function EngineManagerPanel() {
                     />
 
                     <TextField
-                        label="Executable Path"
+                        label={strings.engines.executablePath}
                         placeholder={executablePlaceholder}
                         fullWidth
                         value={newPath}
                         onChange={(e) => setNewPath(e.target.value)}
-                        helperText="Full path to the engine executable"
+                        helperText={strings.engines.executablePathHelp}
                         sx={{ mb: useWeightsFile ? 2 : 0 }}
                         slotProps={{
                             input: {
                                 endAdornment: (
                                     <InputAdornment position="end">
-                                        <Tooltip title="Browse for executable">
+                                        <Tooltip title={strings.engines.browseExecutable}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
                                                     openFileBrowser({
-                                                        title: 'Select Engine Executable',
+                                                        title: strings.engines.selectExecutable,
                                                         accept: executableAccept,
                                                         onSelect: setNewPath,
                                                     })
@@ -402,23 +403,23 @@ export default function EngineManagerPanel() {
                     {useWeightsFile && (
                         <>
                             <TextField
-                                label="Weights File Path"
+                                label={strings.engines.weightsFilePath}
                                 placeholder={weightsPlaceholder}
                                 fullWidth
                                 value={weightsFilePath}
                                 onChange={(e) => setWeightsFilePath(e.target.value)}
-                                helperText="Full path to the weights file (.pb.gz, .pb, .bin, etc.)"
+                                helperText={strings.engines.weightsFileHelp}
                                 sx={{ mb: 2 }}
                                 slotProps={{
                                     input: {
                                         endAdornment: (
                                             <InputAdornment position="end">
-                                                <Tooltip title="Browse for weights file">
+                                                <Tooltip title={strings.engines.browseWeights}>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() =>
                                                             openFileBrowser({
-                                                                title: 'Select Weights File',
+                                                                title: strings.engines.selectWeights,
                                                                 accept: ['.gz', '.pb', '.bin'],
                                                                 onSelect: setWeightsFilePath,
                                                             })
@@ -435,20 +436,20 @@ export default function EngineManagerPanel() {
                                 }}
                             />
                             <TextField
-                                label="Nodes per move"
+                                label={strings.engines.nodesPerMove}
                                 type="number"
                                 fullWidth
                                 value={nodesPerMove}
                                 onChange={(e) => setNodesPerMove(Math.max(1, parseInt(e.target.value) || 1))}
                                 inputProps={{ min: 1, max: 100000 }}
-                                helperText="Limit search nodes per move. Set to 1 for human-like engines like Maia. Leave higher for full strength."
+                                helperText={strings.engines.nodesPerMoveHelp}
                             />
                         </>
                     )}
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 1 }}>
                     <Button onClick={handleCloseDialog} disabled={isSaving}>
-                        Cancel
+                        {strings.common.cancel}
                     </Button>
                     <Button
                         variant="contained"
@@ -458,8 +459,8 @@ export default function EngineManagerPanel() {
                         color={useWeightsFile ? 'secondary' : 'primary'}
                     >
                         {isSaving
-                            ? (useWeightsFile ? 'Loading weights...' : 'Validating...')
-                            : (editingEngine ? 'Save Changes' : 'Add Engine')}
+                            ? (useWeightsFile ? strings.engines.loadingWeights : strings.engines.validating)
+                            : (editingEngine ? strings.engines.saveChanges : strings.engines.addEngine)}
                     </Button>
                 </DialogActions>
             </Dialog>

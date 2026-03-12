@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
 import { ThemeProvider as AppThemeProvider, useAppTheme } from './context/ThemeContext';
+import { SettingsProvider, useAppSettings } from './context/SettingsContext';
 import AppShell from './components/Layout/AppShell';
 import PlayVsAI from './components/GameSetup/PlayVsAI';
 import AIvsAI from './components/GameSetup/AIvsAI';
 import GameAnalysisPanel from './components/Analysis/GameAnalysisPanel';
 import EngineManagerPanel from './components/EngineManager/EngineManagerPanel';
+import SettingsPage from './components/Settings/SettingsPage';
 import { DesktopSplash } from './components/DesktopSplash/DesktopSplash';
 import { FirstRunTour } from './components/Onboarding/FirstRunTour';
 import { serverUrl } from './lib/server';
 import { initializeDesktopSettings, writeDesktopSettingsPatch } from './lib/desktopConfig';
+import type { AppViewId } from './lib/desktopConfig';
 
 let desktopBackendProcessId: number | null = null;
 let desktopBackendStartupPromise: Promise<void> | null = null;
@@ -230,9 +233,11 @@ async function stopDesktopBackend(): Promise<void> {
 
 function AppContent() {
     const { muiTheme } = useAppTheme();
-    const [activeView, setActiveView] = useState('play');
+    const { animationsEnabled, isHydrated, lastView, rememberLastView, setLastView } = useAppSettings();
+    const [activeView, setActiveView] = useState<AppViewId>('play');
     const [isAppReady, setIsAppReady] = useState(false);
     const [showFirstRunTour, setShowFirstRunTour] = useState(false);
+    const startupDelayRef = useRef(animationsEnabled ? 3000 : 0);
 
     useEffect(() => {
         const neutralino = getNeutralino();
@@ -267,7 +272,7 @@ function AppContent() {
         let cancelled = false;
         const startup = async () => {
             await Promise.all([
-                new Promise((resolve) => setTimeout(resolve, 3000)),
+                new Promise((resolve) => setTimeout(resolve, startupDelayRef.current)),
                 ensureDesktopBackend(),
             ]);
             if (!cancelled) {
@@ -285,6 +290,19 @@ function AppContent() {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (isHydrated && !isAppReady && rememberLastView) {
+            setActiveView(lastView);
+        }
+    }, [isAppReady, isHydrated, lastView, rememberLastView]);
+
+    useEffect(() => {
+        if (!isHydrated) {
+            return;
+        }
+        setLastView(activeView);
+    }, [activeView, isHydrated, setLastView]);
 
     useEffect(() => {
         if (!isAppReady) {
@@ -322,6 +340,8 @@ function AppContent() {
                 return <GameAnalysisPanel />;
             case 'engines':
                 return <EngineManagerPanel />;
+            case 'settings':
+                return <SettingsPage />;
             default:
                 return <PlayVsAI />;
         }
@@ -351,9 +371,11 @@ function AppContent() {
 
 function App() {
     return (
-        <AppThemeProvider>
-            <AppContent />
-        </AppThemeProvider>
+        <SettingsProvider>
+            <AppThemeProvider>
+                <AppContent />
+            </AppThemeProvider>
+        </SettingsProvider>
     );
 }
 
