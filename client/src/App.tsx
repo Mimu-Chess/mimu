@@ -170,29 +170,21 @@ async function ensureDesktopBackend(): Promise<void> {
         return desktopBackendStartupPromise;
     }
 
-    if (runtimeWindow.NL_OS === 'Windows') {
-        desktopBackendStartupPromise = (async () => {
-            const didStart = await waitForBackend();
-            if (!didStart) {
-                console.error('Bundled Windows desktop backend did not become ready.');
-            }
-            desktopBackendStartupPromise = null;
-        })();
-
-        return desktopBackendStartupPromise;
-    }
-
-    if (await isBackendReachable()) {
-        return;
-    }
-
     desktopBackendStartupPromise = (async () => {
+        const didStartFromLauncher = await waitForBackend();
+        if (didStartFromLauncher) {
+            return;
+        }
+
         await waitForNeutralinoReady();
         const binaryPath = await resolveDesktopServerBinaryPath();
         if (!binaryPath) {
             console.error('Could not locate bundled desktop backend executable.');
             return;
         }
+
+        console.warn('Bundled desktop backend did not become ready automatically. Attempting direct launch.');
+
         try {
             const spawned = await neutralino.os.spawnProcess(`"${binaryPath}"`, {
                 cwd: runtimeWindow.NL_CWD || runtimeWindow.NL_PATH,

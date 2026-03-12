@@ -7,9 +7,68 @@ const neutralinoConfig = JSON.parse(
     fs.readFileSync(path.join(projectRoot, 'neutralino.config.json'), 'utf8'),
 );
 const outputDir = path.join(projectRoot, 'dist', neutralinoConfig.cli.binaryName);
-const outputName = process.platform === 'win32' ? 'mimu-chess-server.exe' : 'mimu-chess-server';
+const executableExtension = process.platform === 'win32' ? '.exe' : '';
+const outputName = `mimu-chess-server${executableExtension}`;
 const outputPath = path.join(outputDir, outputName);
 const windowsIconPath = path.join(projectRoot, 'dist', 'MIMU.ico');
+
+function buildCompileArgs(entrypoint, outfile, windowsMetadata) {
+    const args = [
+        'build',
+        entrypoint,
+        '--compile',
+        '--outfile',
+        outfile,
+    ];
+
+    if (process.platform === 'win32') {
+        args.push(
+            '--windows-hide-console',
+            '--windows-icon',
+            windowsIconPath,
+            '--windows-title',
+            windowsMetadata.title,
+            '--windows-description',
+            windowsMetadata.description,
+        );
+    }
+
+    return args;
+}
+
+function getHostClientBinaryCandidates() {
+    const binaryName = neutralinoConfig.cli.binaryName;
+
+    switch (process.platform) {
+        case 'win32':
+            return [`${binaryName}-win_x64.exe`];
+        case 'darwin':
+            if (process.arch === 'arm64') {
+                return [`${binaryName}-mac_arm64`, `${binaryName}-mac_universal`, `${binaryName}-mac_x64`];
+            }
+            return [`${binaryName}-mac_x64`, `${binaryName}-mac_universal`, `${binaryName}-mac_arm64`];
+        case 'linux':
+            if (process.arch === 'arm64') {
+                return [`${binaryName}-linux_arm64`, `${binaryName}-linux_x64`, `${binaryName}-linux_armhf`];
+            }
+            if (process.arch === 'arm') {
+                return [`${binaryName}-linux_armhf`, `${binaryName}-linux_arm64`, `${binaryName}-linux_x64`];
+            }
+            return [`${binaryName}-linux_x64`, `${binaryName}-linux_arm64`, `${binaryName}-linux_armhf`];
+        default:
+            return [];
+    }
+}
+
+function resolveHostClientBinary() {
+    for (const candidate of getHostClientBinaryCandidates()) {
+        if (fs.existsSync(path.join(outputDir, candidate))) {
+            return candidate;
+        }
+    }
+
+    throw new Error(`Packaged client executable not found for ${process.platform}/${process.arch} in ${outputDir}`);
+}
 
 function runObjcopyWindowsSubsystem(executablePath) {
     if (process.platform !== 'win32') {
@@ -25,20 +84,14 @@ if (!fs.existsSync(outputDir)) {
     throw new Error(`Neutralino build output directory not found: ${outputDir}`);
 }
 
-execFileSync('bun', [
-    'build',
+execFileSync('bun', buildCompileArgs(
     path.join(projectRoot, 'server', 'src', 'index.ts'),
-    '--compile',
-    '--windows-hide-console',
-    '--windows-icon',
-    windowsIconPath,
-    '--windows-title',
-    'Mimu Chess Server',
-    '--windows-description',
-    'Mimu Chess bundled backend',
-    '--outfile',
     outputPath,
-], {
+    {
+        title: 'Mimu Chess Server',
+        description: 'Mimu Chess bundled backend',
+    },
+), {
     stdio: 'inherit',
 });
 
@@ -46,40 +99,28 @@ runObjcopyWindowsSubsystem(outputPath);
 
 console.log(`Compiled desktop backend to ${outputPath}`);
 
-if (process.platform === 'win32') {
-    const packagedClientExecutable = fs.readdirSync(outputDir).find((entry) => /^mimu-chess-win_.*\.exe$/i.test(entry));
-    if (!packagedClientExecutable) {
-        throw new Error(`Packaged client executable not found in ${outputDir}`);
-    }
+const packagedClientExecutable = resolveHostClientBinary();
+const packagedClientPath = path.join(outputDir, packagedClientExecutable);
+const renamedClientPath = path.join(outputDir, `mimu-chess-client${executableExtension}`);
+const launcherOutputPath = packagedClientPath;
 
-    const packagedClientPath = path.join(outputDir, packagedClientExecutable);
-    const renamedClientPath = path.join(outputDir, 'mimu-chess-client.exe');
-    const launcherOutputPath = packagedClientPath;
-
-    if (fs.existsSync(renamedClientPath)) {
-        fs.rmSync(renamedClientPath, { force: true });
-    }
-
-    fs.renameSync(packagedClientPath, renamedClientPath);
-
-    execFileSync('bun', [
-        'build',
-        path.join(projectRoot, 'scripts', 'desktop-launcher.ts'),
-        '--compile',
-        '--windows-hide-console',
-        '--windows-icon',
-        windowsIconPath,
-        '--windows-title',
-        'Mimu Chess',
-        '--windows-description',
-        'Mimu Chess desktop launcher',
-        '--outfile',
-        launcherOutputPath,
-    ], {
-        stdio: 'inherit',
-    });
-
-    runObjcopyWindowsSubsystem(launcherOutputPath);
-
-    console.log(`Built desktop launcher at ${launcherOutputPath}`);
+if (fs.existsSync(renamedClientPath)) {
+    fs.rmSync(renamedClientPath, { force: true });
 }
+
+fs.renameSync(packagedClientPath, renamedClientPath);
+
+execFileSync('bun', buildCompileArgs(
+    path.join(projectRoot, 'scripts', 'desktop-launcher.ts'),
+    launcherOutputPath,
+    {
+        title: 'Mimu Chess',
+        description: 'Mimu Chess desktop launcher',
+    },
+), {
+    stdio: 'inherit',
+});
+
+runObjcopyWindowsSubsystem(launcherOutputPath);
+
+console.log(`Built desktop launcher at ${launcherOutputPath}`);

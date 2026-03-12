@@ -3,9 +3,11 @@ import net from 'node:net';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
+const isWindows = process.platform === 'win32';
+const executableExtension = isWindows ? '.exe' : '';
 const appDirectory = path.dirname(process.execPath);
-const clientExecutable = path.join(appDirectory, 'mimu-chess-client.exe');
-const serverExecutable = path.join(appDirectory, 'mimu-chess-server.exe');
+const clientExecutable = path.join(appDirectory, `mimu-chess-client${executableExtension}`);
+const serverExecutable = path.join(appDirectory, `mimu-chess-server${executableExtension}`);
 
 function requireExecutable(filePath: string) {
     if (!fs.existsSync(filePath)) {
@@ -16,6 +18,18 @@ function requireExecutable(filePath: string) {
 function killServerProcess(pid: number | undefined): Promise<void> {
     if (!pid) {
         return Promise.resolve();
+    }
+
+    if (!isWindows) {
+        return new Promise((resolve) => {
+            try {
+                process.kill(pid, 'SIGTERM');
+            }
+            catch {
+                // The process may already be gone.
+            }
+            resolve();
+        });
     }
 
     return new Promise((resolve) => {
@@ -68,9 +82,13 @@ async function main() {
     const serverProcess = spawn(serverExecutable, [], {
         cwd: appDirectory,
         stdio: 'ignore',
-        windowsHide: true,
+        windowsHide: isWindows,
         detached: false,
         shell: false,
+        env: {
+            ...process.env,
+            PORT: process.env.PORT ?? '3001',
+        },
     });
 
     const serverReady = await waitForServer(3001, '127.0.0.1', 12000);
@@ -83,6 +101,7 @@ async function main() {
         cwd: appDirectory,
         stdio: 'ignore',
         windowsHide: false,
+        shell: false,
     });
 
     const shutdown = async (exitCode: number = 0) => {
