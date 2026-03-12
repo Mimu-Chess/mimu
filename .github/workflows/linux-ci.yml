@@ -28,3 +28,11 @@ jobs:
 
       - name: Build workspace
         run: bun run desktop:build
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux-build
+          path: dist/mimu-chess
+          if-no-files-found: error
+          retention-days: 7
