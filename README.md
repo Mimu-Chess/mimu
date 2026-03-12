@@ -82,7 +82,7 @@ Important files and folders:
 
 ## Stack
 
-- `client`: React 19, Vite, TypeScript, Material UI
+- `client`: React 19, Bun bundler/dev server, TypeScript, Material UI
 - `server`: Bun, Express, Socket.IO, `chess.js`
 - `desktop`: Neutralino
 

@@ -23,7 +23,7 @@ Root scripts:
 | Command | Purpose |
 | --- | --- |
 | `bun run dev` | Start client and server together |
-| `bun run dev:client` | Start the Vite frontend |
+| `bun run dev:client` | Start the Bun frontend dev server |
 | `bun run dev:server` | Start the Bun backend |
 | `bun run build` | Build client and server |
 | `bun run desktop:dev` | Run the Neutralino desktop app in development |
