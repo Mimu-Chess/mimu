@@ -512,11 +512,7 @@ export default function AIvsAI() {
                                 <Button variant="contained" startIcon={<PlayIcon />} onClick={handlePrepareNewMatch}>
                                     {strings.match.newMatch}
                                 </Button>
-                            ) : (
-                                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-                                    {strings.match.configureMatchHint}
-                                </Typography>
-                            )}
+                            ) : null}
                         </Box>
                     </Box>
 
