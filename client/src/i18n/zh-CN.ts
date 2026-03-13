@@ -46,7 +46,6 @@ const zhCN: AppStrings = {
         lightModeLabel: '浅色',
         languageLabel: '界面语言',
         languageDescription: '翻译整个应用界面。',
-        languageNote: '语言切换现在会覆盖主要应用页面。',
         animationsLabel: '动画效果',
         animationsDescription: '减少过渡、涟漪、棋盘移动和启动动画。',
         boardTitle: '棋盘',

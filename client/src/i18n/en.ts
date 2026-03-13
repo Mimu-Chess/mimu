@@ -41,7 +41,6 @@ const en = {
         lightModeLabel: 'Light',
         languageLabel: 'Interface language',
         languageDescription: 'Translate the full application interface.',
-        languageNote: 'Language changes now apply across the main app screens.',
         animationsLabel: 'Animations',
         animationsDescription: 'Reduce transitions, ripples, board movement, and startup motion.',
         boardTitle: 'Board',

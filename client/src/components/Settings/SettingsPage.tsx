@@ -60,13 +60,11 @@ function SettingRow({
     label,
     description,
     control,
-    note,
     divider = true,
 }: {
     label: string;
     description: string;
     control: ReactNode;
-    note?: string;
     divider?: boolean;
 }) {
     return (
@@ -87,11 +85,6 @@ function SettingRow({
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.35, lineHeight: 1.6 }}>
                         {description}
                     </Typography>
-                    {note && (
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.65 }}>
-                            {note}
-                        </Typography>
-                    )}
                 </Box>
                 <Box sx={{ flexShrink: 0 }}>
                     {control}
@@ -170,7 +163,6 @@ export default function SettingsPage() {
                             <SettingRow
                                 label={settingsText.languageLabel}
                                 description={settingsText.languageDescription}
-                                note={settingsText.languageNote}
                                 divider={false}
                                 control={(
                                     <FormControl size="small" sx={{ minWidth: 190 }}>

@@ -20,7 +20,6 @@ const es: AppStrings = {
         lightModeLabel: 'Claro',
         languageLabel: 'Idioma de la interfaz',
         languageDescription: 'Traduce toda la interfaz principal.',
-        languageNote: 'Los cambios de idioma ahora se aplican en las pantallas principales.',
         animationsLabel: 'Animaciones',
         animationsDescription: 'Reduce transiciones, ondas, movimiento del tablero y animacion inicial.',
         boardTitle: 'Tablero',
