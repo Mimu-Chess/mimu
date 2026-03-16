@@ -1,8 +1,8 @@
 # Mimu Chess
 
-Local-first chess for people who run real UCI engines.
+Desktop chess for people who run real UCI engines.
 
-Play against an engine, run engine-vs-engine matches, review saved PGNs, and analyze positions without sending your games to a remote service.
+Play against an engine, run engine-vs-engine matches, review saved PGNs, and analyze positions in one client.
 
 <p align="center">
   <a href="./LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-1f6feb"></a>
@@ -13,20 +13,20 @@ Play against an engine, run engine-vs-engine matches, review saved PGNs, and ana
 
 ## What It Does
 
-- Play as White or Black against a local UCI engine
+- Play as White or Black against a UCI engine
 - Run multi-game engine-vs-engine matches with live eval, depth, PV, nodes, and NPS
-- Save finished games as PGN in a local history folder
+- Save finished games as PGN in the game history folder
 - Reopen saved games and analyze any position with a selected engine
-- Work in desktop mode for the real file and engine flow, or browser dev mode for UI iteration
+- Work in desktop mode for the full file and engine flow, or browser dev mode for UI iteration
 
 ## How The Client Works
 
 ```mermaid
 flowchart LR
-    subgraph Machine["Your machine"]
+    subgraph Machine["Mimu Chess runtime"]
         UI["React client / Neutralino desktop shell"]
-        API["Bun + Express local server"]
-        Engines["EngineManager<br/>local UCI executables"]
+        API["Bun + Express server"]
+        Engines["EngineManager<br/>UCI executables"]
         Play["GameManager<br/>play vs AI"]
         Match["MatchRunner<br/>engine matches"]
         Analysis["AnalysisManager<br/>position analysis"]
@@ -67,15 +67,15 @@ bun run desktop:build
 
 1. Install dependencies with `bun install`.
 2. Start the app with `bun run desktop:dev`.
-3. Add a local UCI engine in `Engines`.
+3. Add a UCI engine in `Engines`.
 4. Use `Play vs AI`, `Match`, or `History / Analysis`.
-5. Reopen saved PGNs from local history when you want to review or analyze a game.
+5. Reopen saved PGNs from history when you want to review or analyze a game.
 
 ## Engine Support
 
-Mimu Chess is built for local UCI executables, including setups that need an extra weights file such as LC0 or Maia-style engines.
+Mimu Chess is built for UCI executables, including setups that need an extra weights file such as LC0 or Maia-style engines.
 
-## Local Data
+## Data Files
 
 Saved files live in the app config directory:
 
