@@ -3,9 +3,11 @@ name: Desktop Linux CI
 on:
   push:
     paths-ignore:
+      - 'README.md'
       - '.github/workflows/**'
   pull_request:
     paths-ignore:
+      - 'README.md'
       - '.github/workflows/**'
   workflow_dispatch:
 

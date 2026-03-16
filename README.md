@@ -11,6 +11,10 @@ Play against an engine, run engine-vs-engine matches, review saved PGNs, and ana
   <img alt="Desktop" src="https://img.shields.io/badge/desktop-Neutralino-2C3E50">
 </p>
 
+<p align="center">
+  <img src="./docs/readme/play-vs-ai.png" alt="Mimu Chess Play vs AI screen with the board, sidebar navigation, and game setup panel." width="100%" />
+</p>
+
 ## What It Does
 
 - Play as White or Black against a UCI engine
