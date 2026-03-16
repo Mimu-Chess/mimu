@@ -1,83 +1,189 @@
 # Mimu Chess
 
-Mimu Chess is a local-first chess desktop app for playing against UCI engines, running engine matches, reviewing saved games, and analyzing positions from your own history.
+<p align="center">
+  <img src="./docs/readme/hero.svg" alt="Mimu Chess hero banner showing local-first engine play, matches, and analysis." width="100%" />
+</p>
 
-It is built for people who want their engines, PGNs, and configuration to stay on their machine.
+<p align="center">
+  <strong>Local-first chess for people who run real UCI engines.</strong><br/>
+  Play against an engine, run engine matches, replay PGNs, and analyze saved games without shipping your files to a server.
+</p>
 
-## Screenshots
-son im crine
+<p align="center">
+  <a href="./LICENSE"><img alt="License GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-1f6feb"></a>
+  <img alt="Bun" src="https://img.shields.io/badge/runtime-Bun-F7F7F7?logo=bun&logoColor=111111">
+  <img alt="React 19" src="https://img.shields.io/badge/ui-React%2019-149ECA?logo=react&logoColor=white">
+  <img alt="Desktop" src="https://img.shields.io/badge/desktop-Neutralino-2C3E50">
+</p>
 
-## What It Does
+## Why Star This Repo
 
-- Play against a local UCI engine with configurable side and think time.
-- Run engine-vs-engine matches and track score across multiple games.
-- Save completed games as PGN files in the app config directory.
-- Replay saved games directly inside the app move by move.
-- Analyze saved games with any configured engine from the dedicated Analysis view.
-- Inspect live engine output including depth, eval, PV, nodes, and NPS.
-- Manage engine executables and weights-based engines such as LC0 or Maia.
-- Use built-in game history filtering, including preset time ranges and custom date/time ranges.
-- Switch between multiple board/app themes.
-- Run as a local desktop app through Neutralino, with browser-based development available as well.
+You can see what the app is for in a few seconds:
 
-## Feature Overview
+- Local UCI engine play, not a browser toy.
+- AI vs AI matches with live engine output.
+- PGN-backed history you can inspect outside the app.
+- Built-in analysis for saved games.
+- Desktop-first workflow, with browser dev mode available for iteration.
 
-### Play vs AI
+## Show, Don't Tell
 
-- Start a human-vs-engine game with your chosen engine.
-- Play as White or Black.
-- Flip the board, undo moves, resign, and export PGN.
-- View completed games later from saved history.
+<p align="center">
+  <img src="./docs/readme/workflows.svg" alt="Three core workflows: play vs AI, run engine matches, and review saved games with analysis." width="100%" />
+</p>
 
-### Engine Matches
+### Start It In Two Commands
 
-- Run automated AI-vs-AI matches between configured engines.
-- Alternate colors across games.
-- Watch the current board and live engine info while the match runs.
-- Save each completed match game into history for later replay or analysis.
+```bash
+bun install
+bun run desktop:dev
+```
 
-### Game Analysis
+### Build It
 
-- Open a saved game from history.
-- Step to any ply in the game.
-- Select an engine and analyze the currently displayed position.
-- See the engine evaluation, depth, principal variation, and best move.
+```bash
+bun run build
+bun run desktop:build
+```
 
-### Game History
+If you only want browser-style UI development:
 
-- History is stored on disk as PGN files, not in browser storage.
-- Replay games directly on the board.
-- Filter by time window or custom date/time range.
-- Download PGN from any saved entry.
+```bash
+bun run dev
+```
 
-### Engine Manager
+## What You Get
 
-- Add, update, and remove local UCI engines.
-- Validate engine paths before saving.
-- Support engines that require a weights file.
-- Support fixed-node configurations for weights-based engines.
+### Play against a local engine
 
-## Storage
+```bash
+# dev mode
+bun run dev
+```
 
-Mimu Chess stores configuration and saved game history in the local app config directory.
+- Pick an engine.
+- Choose White or Black.
+- Set think time.
+- Flip the board, undo moves, resign, and export the game as PGN.
 
-Typical locations:
+### Run engine-vs-engine matches
+
+```bash
+# desktop mode is the most representative environment for file + engine workflows
+bun run desktop:dev
+```
+
+- Select two configured engines.
+- Run multi-game matches with alternating colors.
+- Watch score, depth, eval, PV, nodes, and NPS while the match is running.
+- Save completed games into local history for later review.
+
+### Review and analyze saved games
+
+```text
+History -> pick a saved PGN -> jump to any move -> Analysis -> choose engine
+```
+
+- Replay saved games move by move.
+- Analyze the current position from any ply.
+- Inspect evaluation, best move, and principal variation from your selected engine.
+
+## How To
+
+This is the section most people actually need.
+
+### 1. Install dependencies
+
+```bash
+bun install
+```
+
+Requirements:
+
+- [Bun](https://bun.sh/)
+- At least one local UCI engine executable
+- `bun install` from the repo root so the local Neutralino CLI is available
+
+### 2. Run the app
+
+```bash
+# browser-style development
+bun run dev
+
+# desktop development
+bun run desktop:dev
+```
+
+### 3. Add an engine
+
+```text
+Open Mimu Chess -> Engines -> Add Engine -> choose executable -> save
+```
+
+Supported workflow details:
+
+- Standard local UCI executables.
+- Engines that need a weights file, such as LC0 or Maia.
+- Path validation before saving.
+
+### 4. Play against the engine
+
+```text
+Play vs AI -> choose engine -> pick side -> set think time -> Start Game
+```
+
+You can then:
+
+- make moves on the board
+- undo
+- flip the board
+- resign
+- export PGN
+
+### 5. Run an engine match
+
+```text
+Match -> choose Engine A + Engine B -> set number of games -> Start Match
+```
+
+The app will:
+
+- alternate colors across games
+- show the current board live
+- track score across the match
+- save finished games into history
+
+### 6. Analyze a saved game
+
+```text
+History / Analysis -> open a saved game -> step to a position -> choose engine -> analyze
+```
+
+Use this when you want:
+
+- a quick post-game check
+- engine feedback on a specific position
+- a reusable PGN archive on disk
+
+## Local Files
+
+<p align="center">
+  <img src="./docs/readme/storage.svg" alt="Diagram of the local configuration folder showing engines.json, settings.json, and game-history PGN files." width="100%" />
+</p>
+
+Mimu Chess stores configuration and saved games in the local app config directory.
 
 - Windows: `%APPDATA%\Mimu Chess`
 - macOS: `~/Library/Application Support/Mimu Chess`
 - Linux: `$XDG_CONFIG_HOME/mimu-chess` or `~/.config/mimu-chess`
 
-Important files and folders:
+Important files:
 
-- `engines.json`: saved engine definitions
-- `settings.json`: desktop settings such as theme/onboarding state
-- `game-history/`: saved PGN history
-
-## Stack
-
-- `client`: React 19, Bun bundler/dev server, TypeScript, Material UI
-- `server`: Bun, Express, Socket.IO, `chess.js`
-- `desktop`: Neutralino
+```text
+engines.json      # saved engine definitions
+settings.json     # theme + desktop settings + onboarding state
+game-history/     # saved PGN files
+```
 
 ## Project Layout
 
@@ -86,61 +192,47 @@ Important files and folders:
 |- client/                  React frontend
 |- server/                  Local backend and engine integration
 |- scripts/                 Desktop packaging helpers
-|- neutralino/              Neutralino assets/runtime files
 |- dist/                    Built frontend / desktop assets
 |- neutralino.config.json   Desktop app config
-|- CONTRIBUTING.md          Dev setup and contribution guide
+|- CONTRIBUTING.md          Development guide
 `- package.json             Workspace scripts
 ```
 
-## Requirements
+## Stack
 
-- [Bun](https://bun.sh/)
-- At least one local UCI engine executable to use the chess features
-- `bun install` to fetch the project-local Neutralino CLI used by desktop-mode scripts
+- `client`: React 19, TypeScript, Material UI, `react-chessboard`
+- `server`: Bun, Express, Socket.IO, `chess.js`
+- `desktop`: Neutralino
 
-## Getting Started
+## FAQ
 
-Install dependencies from the repo root:
+### Where are my games saved?
 
-```bash
-bun install
-```
+As PGN files in the local app config directory, under `game-history/`.
 
-Start the app in development:
+### Does this require an online account?
 
-```bash
-bun run dev
-```
+No. The core workflow is local-first.
 
-Build both client and server:
+### Can I use LC0 or Maia-style setups?
 
-```bash
-bun run build
-```
+Yes. The engine manager supports engines that require a weights file.
 
-For desktop-specific development and packaging details, see [CONTRIBUTING.md](CONTRIBUTING.md).
+### What should I do if an engine is not starting?
 
-## Why This App Exists
-
-Mimu Chess is built around a few practical ideas:
-
-- Local-first: engines and saved games stay on your machine.
-- Engine-focused: the UI is centered on real UCI workflows, not online play.
-- Reviewable: games should be easy to replay, export, and analyze later.
-- Desktop-friendly: engine path management and file-backed history should work cleanly outside the browser.
-- Cross-platform: desktop engine and file workflows should work on Windows, macOS, and Linux.
+Check the executable path first in the Engines view. If the same problem comes up more than once, it belongs in this README or [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+If you open an issue, include:
 
-- development setup
-- available scripts
-- project structure
-- contribution workflow
-- project direction and constraints
+- your OS
+- the engine you tried to run
+- whether the problem happens in `bun run dev`, `bun run desktop:dev`, or both
+- the exact step that failed
+
+Development and packaging details live in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-See [LICENSE](LICENSE).
+[GPL-3.0](./LICENSE)

@@ -1,0 +1,58 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="140" y1="60" x2="1110" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07131F"/>
+      <stop offset="0.55" stop-color="#10253A"/>
+      <stop offset="1" stop-color="#201826"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="195" y1="113" x2="1017" y2="594" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#43C6AC"/>
+      <stop offset="1" stop-color="#F8FFAE"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#132A40"/>
+      <stop offset="1" stop-color="#0B1827"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1280" height="720" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="30" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="720" rx="36" fill="url(#bg)"/>
+  <circle cx="1096" cy="118" r="138" fill="#2CCFA7" fill-opacity="0.11"/>
+  <circle cx="161" cy="625" r="174" fill="#F0C674" fill-opacity="0.08"/>
+  <rect x="64" y="64" width="1152" height="592" rx="30" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2" fill="#FFFFFF" fill-opacity="0.02"/>
+  <g filter="url(#shadow)">
+    <rect x="104" y="103" width="506" height="514" rx="28" fill="url(#panel)"/>
+    <rect x="643" y="103" width="533" height="514" rx="28" fill="#0E1C2B"/>
+  </g>
+  <text x="150" y="178" fill="#7DE3C7" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="2">LOCAL-FIRST CHESS DESKTOP APP</text>
+  <text x="150" y="258" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="66" font-weight="800">Mimu Chess</text>
+  <text x="150" y="314" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500">Play engines, run matches, replay PGNs, and analyze positions</text>
+  <text x="150" y="352" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="500">without sending your games or config anywhere else.</text>
+  <rect x="150" y="399" width="171" height="52" rx="14" fill="url(#accent)"/>
+  <text x="186" y="432" fill="#07131F" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="800">UCI Engines</text>
+  <rect x="336" y="399" width="162" height="52" rx="14" stroke="#34506B" stroke-width="2" fill="#132A40"/>
+  <text x="376" y="432" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="700">PGN History</text>
+  <rect x="150" y="480" width="398" height="95" rx="20" fill="#0A1520" stroke="#1E3850"/>
+  <text x="181" y="522" fill="#7DE3C7" font-family="Consolas, monospace" font-size="22" font-weight="700">bun install</text>
+  <text x="181" y="557" fill="#D8E6F1" font-family="Consolas, monospace" font-size="22" font-weight="700">bun run desktop:dev</text>
+  <rect x="681" y="138" width="457" height="72" rx="20" fill="#132A40" stroke="#24435B"/>
+  <circle cx="722" cy="174" r="11" fill="#7DE3C7"/>
+  <text x="751" y="181" fill="#EEF7FF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Engine Manager</text>
+  <text x="911" y="181" fill="#90A7BC" font-family="Segoe UI, Arial, sans-serif" font-size="20">Stockfish 17 · LC0 · Maia</text>
+  <rect x="681" y="234" width="216" height="154" rx="22" fill="#101F2E" stroke="#223E58"/>
+  <text x="710" y="274" fill="#EEF7FF" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700">Play vs AI</text>
+  <text x="710" y="317" fill="#8CB5FF" font-family="Segoe UI, Arial, sans-serif" font-size="22">White / Black</text>
+  <text x="710" y="348" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="20">Undo, resign, export PGN</text>
+  <rect x="920" y="234" width="218" height="154" rx="22" fill="#101F2E" stroke="#223E58"/>
+  <text x="951" y="274" fill="#EEF7FF" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700">Engine Match</text>
+  <text x="951" y="317" fill="#F0C674" font-family="Segoe UI, Arial, sans-serif" font-size="22">AI vs AI</text>
+  <text x="951" y="348" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="20">Watch scores and live PV</text>
+  <rect x="681" y="413" width="457" height="168" rx="22" fill="#101F2E" stroke="#223E58"/>
+  <text x="713" y="454" fill="#EEF7FF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Analysis + History</text>
+  <text x="713" y="495" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="21">Open a saved game, jump to any move, and analyze the current position</text>
+  <text x="713" y="527" fill="#B7C6D6" font-family="Segoe UI, Arial, sans-serif" font-size="21">with depth, eval, best line, nodes, and NPS visible.</text>
+  <rect x="713" y="545" width="186" height="22" rx="11" fill="#284966"/>
+  <rect x="905" y="545" width="117" height="22" rx="11" fill="#7DE3C7"/>
+  <rect x="1028" y="545" width="78" height="22" rx="11" fill="#F0C674"/>
+</svg>

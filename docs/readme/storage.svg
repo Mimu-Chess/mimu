@@ -1,0 +1,27 @@
+<svg width="1280" height="620" viewBox="0 0 1280 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="86" y1="34" x2="1191" y2="575" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1520"/>
+      <stop offset="1" stop-color="#171522"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="620" rx="36" fill="url(#bg)"/>
+  <text x="78" y="92" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="46" font-weight="800">Local Files, Not Cloud State</text>
+  <text x="78" y="134" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="24">If you want to know what Mimu Chess saves, this is the shape of it.</text>
+  <rect x="78" y="182" width="563" height="370" rx="28" fill="#0B131D" stroke="#21405A"/>
+  <text x="112" y="233" fill="#7DE3C7" font-family="Consolas, monospace" font-size="26" font-weight="700">%APPDATA%\Mimu Chess</text>
+  <text x="112" y="287" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">|- engines.json</text>
+  <text x="112" y="329" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">|- settings.json</text>
+  <text x="112" y="371" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">`- game-history/</text>
+  <text x="152" y="413" fill="#9EB4C8" font-family="Consolas, monospace" font-size="24">|- 2026-03-15-stockfish-vs-lc0.pgn</text>
+  <text x="152" y="455" fill="#9EB4C8" font-family="Consolas, monospace" font-size="24">`- 2026-03-16-training-session.pgn</text>
+  <rect x="693" y="182" width="507" height="110" rx="24" fill="#111E2C" stroke="#21405A"/>
+  <text x="726" y="228" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Engine definitions</text>
+  <text x="726" y="264" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Paths, names, and optional weights-file settings live in a plain JSON file.</text>
+  <rect x="693" y="314" width="507" height="110" rx="24" fill="#111E2C" stroke="#21405A"/>
+  <text x="726" y="360" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Saved games</text>
+  <text x="726" y="396" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Completed games are stored as PGN files so they are easy to inspect and export.</text>
+  <rect x="693" y="446" width="507" height="106" rx="24" fill="#111E2C" stroke="#21405A"/>
+  <text x="726" y="492" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Settings</text>
+  <text x="726" y="528" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Theme, onboarding state, and desktop preferences stay on your machine.</text>
+</svg>

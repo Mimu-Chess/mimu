@@ -1,0 +1,58 @@
+<svg width="1280" height="820" viewBox="0 0 1280 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="83" y1="42" x2="1178" y2="758" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A141E"/>
+      <stop offset="1" stop-color="#141927"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#43C6AC"/>
+      <stop offset="1" stop-color="#7DE3C7"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F0C674"/>
+      <stop offset="1" stop-color="#FFE9A8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="820" rx="36" fill="url(#bg)"/>
+  <text x="74" y="92" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="46" font-weight="800">What You Can Do In One Session</text>
+  <text x="74" y="133" fill="#A6B7C7" font-family="Segoe UI, Arial, sans-serif" font-size="24">The README should prove the workflow quickly. These are the main loops Mimu Chess is built around.</text>
+  <rect x="73" y="185" width="354" height="548" rx="28" fill="#111E2C" stroke="#1E3850"/>
+  <rect x="463" y="185" width="354" height="548" rx="28" fill="#111E2C" stroke="#1E3850"/>
+  <rect x="853" y="185" width="354" height="548" rx="28" fill="#111E2C" stroke="#1E3850"/>
+  <text x="108" y="243" fill="#7DE3C7" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="1.5">WORKFLOW 01</text>
+  <text x="108" y="283" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Play vs AI</text>
+  <rect x="108" y="319" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="135" y="359" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">1. Pick your engine</text>
+  <path d="M250 390L250 427" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="108" y="434" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="135" y="474" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">2. Choose side + time</text>
+  <path d="M250 505L250 542" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="108" y="549" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="135" y="589" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">3. Play, undo, export PGN</text>
+  <circle cx="354" cy="662" r="22" fill="url(#mint)"/>
+  <text x="108" y="668" fill="#A6B7C7" font-family="Segoe UI, Arial, sans-serif" font-size="22">Perfect for testing lines against your own engine build.</text>
+  <text x="499" y="243" fill="#F0C674" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="1.5">WORKFLOW 02</text>
+  <text x="499" y="283" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Engine Match</text>
+  <rect x="498" y="319" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="525" y="359" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">1. Select both engines</text>
+  <path d="M640 390L640 427" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="498" y="434" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="525" y="474" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">2. Set games + colors</text>
+  <path d="M640 505L640 542" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="498" y="549" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="525" y="589" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">3. Watch score + live PV</text>
+  <circle cx="744" cy="662" r="22" fill="url(#gold)"/>
+  <text x="498" y="668" fill="#A6B7C7" font-family="Segoe UI, Arial, sans-serif" font-size="22">Built for local engine bake-offs without cloud infrastructure.</text>
+  <text x="889" y="243" fill="#8CB5FF" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="1.5">WORKFLOW 03</text>
+  <text x="889" y="283" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="800">Review + Analyze</text>
+  <rect x="888" y="319" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="915" y="359" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">1. Open a saved PGN</text>
+  <path d="M1030 390L1030 427" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="888" y="434" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="915" y="474" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">2. Jump to any move</text>
+  <path d="M1030 505L1030 542" stroke="#36516D" stroke-width="4" stroke-linecap="round"/>
+  <rect x="888" y="549" width="284" height="64" rx="18" fill="#0A1520"/>
+  <text x="915" y="589" fill="#D8E6F1" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">3. Inspect eval + best line</text>
+  <circle cx="1134" cy="662" r="22" fill="#8CB5FF"/>
+  <text x="888" y="668" fill="#A6B7C7" font-family="Segoe UI, Arial, sans-serif" font-size="22">History stays on disk, so your games remain inspectable outside the app.</text>
+</svg>
