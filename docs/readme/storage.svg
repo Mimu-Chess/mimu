@@ -1,27 +1,46 @@
-<svg width="1280" height="620" viewBox="0 0 1280 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="1280" height="680" viewBox="0 0 1280 680" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="86" y1="34" x2="1191" y2="575" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0B1520"/>
-      <stop offset="1" stop-color="#171522"/>
+    <linearGradient id="bg" x1="82" y1="34" x2="1189" y2="644" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7ECE3"/>
+      <stop offset="0.5" stop-color="#E7D0BC"/>
+      <stop offset="1" stop-color="#D8B79A"/>
     </linearGradient>
   </defs>
-  <rect width="1280" height="620" rx="36" fill="url(#bg)"/>
-  <text x="78" y="92" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="46" font-weight="800">Local Files, Not Cloud State</text>
-  <text x="78" y="134" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="24">If you want to know what Mimu Chess saves, this is the shape of it.</text>
-  <rect x="78" y="182" width="563" height="370" rx="28" fill="#0B131D" stroke="#21405A"/>
-  <text x="112" y="233" fill="#7DE3C7" font-family="Consolas, monospace" font-size="26" font-weight="700">%APPDATA%\Mimu Chess</text>
-  <text x="112" y="287" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">|- engines.json</text>
-  <text x="112" y="329" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">|- settings.json</text>
-  <text x="112" y="371" fill="#D8E6F1" font-family="Consolas, monospace" font-size="24">`- game-history/</text>
-  <text x="152" y="413" fill="#9EB4C8" font-family="Consolas, monospace" font-size="24">|- 2026-03-15-stockfish-vs-lc0.pgn</text>
-  <text x="152" y="455" fill="#9EB4C8" font-family="Consolas, monospace" font-size="24">`- 2026-03-16-training-session.pgn</text>
-  <rect x="693" y="182" width="507" height="110" rx="24" fill="#111E2C" stroke="#21405A"/>
-  <text x="726" y="228" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Engine definitions</text>
-  <text x="726" y="264" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Paths, names, and optional weights-file settings live in a plain JSON file.</text>
-  <rect x="693" y="314" width="507" height="110" rx="24" fill="#111E2C" stroke="#21405A"/>
-  <text x="726" y="360" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Saved games</text>
-  <text x="726" y="396" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Completed games are stored as PGN files so they are easy to inspect and export.</text>
-  <rect x="693" y="446" width="507" height="106" rx="24" fill="#111E2C" stroke="#21405A"/>
-  <text x="726" y="492" fill="white" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="800">Settings</text>
-  <text x="726" y="528" fill="#B5C5D5" font-family="Segoe UI, Arial, sans-serif" font-size="22">Theme, onboarding state, and desktop preferences stay on your machine.</text>
+  <rect width="1280" height="680" rx="36" fill="url(#bg)"/>
+  <rect x="54" y="54" width="1172" height="572" rx="34" fill="#FFF8F2" fill-opacity="0.3" stroke="#7A4F32" stroke-opacity="0.16" stroke-width="2"/>
+
+  <text x="78" y="94" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700">Local Files, Not Cloud State</text>
+  <text x="78" y="132" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan x="78" dy="0">If you want to know what Mimu Chess saves,</tspan>
+    <tspan x="78" dy="30">this is the shape of it.</tspan>
+  </text>
+
+  <rect x="78" y="188" width="552" height="394" rx="30" fill="#4B3425"/>
+  <text x="110" y="238" fill="#F0CFB1" font-family="Consolas, monospace" font-size="27" font-weight="700">%APPDATA%\Mimu Chess</text>
+  <text x="110" y="296" fill="#FFF4EA" font-family="Consolas, monospace" font-size="24">|- engines.json</text>
+  <text x="110" y="340" fill="#FFF4EA" font-family="Consolas, monospace" font-size="24">|- settings.json</text>
+  <text x="110" y="384" fill="#FFF4EA" font-family="Consolas, monospace" font-size="24">`- game-history/</text>
+  <text x="148" y="430" fill="#E8D5C4" font-family="Consolas, monospace" font-size="22">|- 2026-03-15-stockfish-vs-lc0.pgn</text>
+  <text x="148" y="470" fill="#E8D5C4" font-family="Consolas, monospace" font-size="22">`- 2026-03-16-training-session.pgn</text>
+
+  <rect x="676" y="188" width="526" height="118" rx="24" fill="#FFF7EF" stroke="#D1AB89" stroke-width="2"/>
+  <text x="708" y="234" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700">Engine definitions</text>
+  <text x="708" y="270" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan x="708" dy="0">Paths, names, and optional weights-file</tspan>
+    <tspan x="708" dy="28">settings live in a plain JSON file.</tspan>
+  </text>
+
+  <rect x="676" y="330" width="526" height="118" rx="24" fill="#6A4832"/>
+  <text x="708" y="376" fill="#FFF5ED" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700">Saved games</text>
+  <text x="708" y="412" fill="#F3E1D1" font-family="'Trebuchet MS', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan x="708" dy="0">Completed games are stored as PGN files,</tspan>
+    <tspan x="708" dy="28">so they are easy to inspect and export.</tspan>
+  </text>
+
+  <rect x="676" y="472" width="526" height="110" rx="24" fill="#FFF7EF" stroke="#D1AB89" stroke-width="2"/>
+  <text x="708" y="518" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700">Settings</text>
+  <text x="708" y="554" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="22" font-weight="600">
+    <tspan x="708" dy="0">Theme, onboarding state, and desktop</tspan>
+    <tspan x="708" dy="28">preferences stay on your machine.</tspan>
+  </text>
 </svg>
