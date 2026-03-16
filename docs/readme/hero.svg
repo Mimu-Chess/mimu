@@ -30,17 +30,18 @@
     <rect x="658" y="104" width="520" height="512" rx="30" fill="url(#panelRight)"/>
   </g>
 
-  <text x="150" y="172" fill="#E7C5A6" font-family="Georgia, 'Times New Roman', serif" font-size="20" font-weight="700" letter-spacing="2">LOCAL-FIRST CHESS DESKTOP APP</text>
-  <text x="150" y="258" fill="#FFF8F2" font-family="Georgia, 'Times New Roman', serif" font-size="68" font-weight="700">Mimu Chess</text>
-  <text x="150" y="314" fill="#E8D5C4" font-family="'Trebuchet MS', Arial, sans-serif" font-size="27" font-weight="600">
-    <tspan x="150" dy="0">Play engines, run matches, replay PGNs,</tspan>
-    <tspan x="150" dy="38">and analyze saved positions locally.</tspan>
+  <text x="150" y="170" fill="#E7C5A6" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">LOCAL-FIRST CHESS DESKTOP APP</text>
+  <text x="150" y="256" fill="#FFF8F2" font-family="Arial, sans-serif" font-size="60" font-weight="700">Mimu Chess</text>
+  <text x="150" y="312" fill="#E8D5C4" font-family="Arial, sans-serif" font-size="24" font-weight="600">
+    <tspan x="150" dy="0">Play engines, run matches,</tspan>
+    <tspan x="150" dy="36">replay PGNs, and analyze</tspan>
+    <tspan x="150" dy="36">saved positions locally.</tspan>
   </text>
 
   <rect x="150" y="395" width="176" height="54" rx="15" fill="url(#accent)"/>
-  <text x="184" y="429" fill="#3B2418" font-family="'Trebuchet MS', Arial, sans-serif" font-size="23" font-weight="700">UCI Engines</text>
+  <text x="184" y="429" fill="#3B2418" font-family="Arial, sans-serif" font-size="21" font-weight="700">UCI Engines</text>
   <rect x="342" y="395" width="168" height="54" rx="15" fill="#5A3E2E" fill-opacity="0.35" stroke="#C89F7C" stroke-opacity="0.45" stroke-width="2"/>
-  <text x="378" y="429" fill="#FFF3E9" font-family="'Trebuchet MS', Arial, sans-serif" font-size="23" font-weight="700">PGN History</text>
+  <text x="376" y="429" fill="#FFF3E9" font-family="Arial, sans-serif" font-size="21" font-weight="700">PGN History</text>
 
   <rect x="150" y="482" width="408" height="96" rx="22" fill="#241710" fill-opacity="0.68" stroke="#E4C4A6" stroke-opacity="0.18"/>
   <text x="182" y="522" fill="#F0CFB1" font-family="Consolas, monospace" font-size="22" font-weight="700">bun install</text>
@@ -48,31 +49,31 @@
 
   <rect x="696" y="138" width="446" height="82" rx="20" fill="#FFF8F1" stroke="#C49A77" stroke-opacity="0.55" stroke-width="2"/>
   <circle cx="731" cy="179" r="11" fill="#8A5A3C"/>
-  <text x="756" y="172" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Engine Manager</text>
-  <text x="756" y="202" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="20" font-weight="600">Stockfish 17 | LC0 | Maia</text>
+  <text x="756" y="173" fill="#5C3A27" font-family="Arial, sans-serif" font-size="26" font-weight="700">Engine Manager</text>
+  <text x="756" y="202" fill="#8F664B" font-family="Arial, sans-serif" font-size="18" font-weight="600">Stockfish 17 | LC0 | Maia</text>
 
   <rect x="696" y="248" width="204" height="150" rx="24" fill="#FFF8F1" stroke="#D1AB89" stroke-opacity="0.72" stroke-width="2"/>
-  <text x="724" y="289" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Play vs AI</text>
-  <text x="724" y="326" fill="#A36D44" font-family="'Trebuchet MS', Arial, sans-serif" font-size="21" font-weight="700">White or Black</text>
-  <text x="724" y="356" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="18" font-weight="600">
+  <text x="724" y="289" fill="#5C3A27" font-family="Arial, sans-serif" font-size="24" font-weight="700">Play vs AI</text>
+  <text x="724" y="322" fill="#A36D44" font-family="Arial, sans-serif" font-size="19" font-weight="700">White or Black</text>
+  <text x="724" y="350" fill="#8F664B" font-family="Arial, sans-serif" font-size="17" font-weight="600">
     <tspan x="724" dy="0">Undo moves, resign,</tspan>
-    <tspan x="724" dy="26">and export PGN.</tspan>
+    <tspan x="724" dy="24">export PGN.</tspan>
   </text>
 
   <rect x="924" y="248" width="218" height="150" rx="24" fill="#6A4832" stroke="#B98E69" stroke-opacity="0.85" stroke-width="2"/>
-  <text x="952" y="289" fill="#FFF4EB" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Engine Match</text>
-  <text x="952" y="326" fill="#F0CFB1" font-family="'Trebuchet MS', Arial, sans-serif" font-size="21" font-weight="700">AI vs AI</text>
-  <text x="952" y="356" fill="#F9E6D6" font-family="'Trebuchet MS', Arial, sans-serif" font-size="18" font-weight="600">
-    <tspan x="952" dy="0">Track score, depth, eval,</tspan>
-    <tspan x="952" dy="26">and live PV.</tspan>
+  <text x="952" y="289" fill="#FFF4EB" font-family="Arial, sans-serif" font-size="24" font-weight="700">Engine Match</text>
+  <text x="952" y="322" fill="#F0CFB1" font-family="Arial, sans-serif" font-size="19" font-weight="700">AI vs AI</text>
+  <text x="952" y="350" fill="#F9E6D6" font-family="Arial, sans-serif" font-size="17" font-weight="600">
+    <tspan x="952" dy="0">Track score, depth,</tspan>
+    <tspan x="952" dy="24">eval, and live PV.</tspan>
   </text>
 
   <rect x="696" y="424" width="446" height="156" rx="24" fill="#FFF8F1" stroke="#D1AB89" stroke-opacity="0.72" stroke-width="2"/>
-  <text x="724" y="466" fill="#5C3A27" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700">Analysis + History</text>
-  <text x="724" y="504" fill="#8F664B" font-family="'Trebuchet MS', Arial, sans-serif" font-size="19" font-weight="600">
-    <tspan x="724" dy="0">Open a saved game, jump to any move,</tspan>
-    <tspan x="724" dy="28">then inspect eval, best line, nodes,</tspan>
-    <tspan x="724" dy="28">and NPS with your selected engine.</tspan>
+  <text x="724" y="466" fill="#5C3A27" font-family="Arial, sans-serif" font-size="25" font-weight="700">Analysis + History</text>
+  <text x="724" y="500" fill="#8F664B" font-family="Arial, sans-serif" font-size="17" font-weight="600">
+    <tspan x="724" dy="0">Open a saved game and jump to any move.</tspan>
+    <tspan x="724" dy="24">Then inspect eval, best line, nodes,</tspan>
+    <tspan x="724" dy="24">and NPS with your chosen engine.</tspan>
   </text>
   <rect x="724" y="546" width="168" height="14" rx="7" fill="#8A5A3C" fill-opacity="0.28"/>
   <rect x="902" y="546" width="126" height="14" rx="7" fill="#C68B59" fill-opacity="0.7"/>
