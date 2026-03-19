@@ -12,6 +12,26 @@ const outputName = `mimu-chess-server${executableExtension}`;
 const outputPath = path.join(outputDir, outputName);
 const windowsIconPath = path.join(projectRoot, 'dist', 'MIMU.ico');
 const shouldBuildLauncher = process.platform === 'win32' || process.platform === 'darwin';
+const IMAGE_SUBSYSTEM_WINDOWS_GUI = 2;
+
+function patchWindowsGuiSubsystem(executablePath) {
+    const buffer = fs.readFileSync(executablePath);
+    const peHeaderOffset = buffer.readUInt32LE(0x3c);
+    const optionalHeaderOffset = peHeaderOffset + 4 + 20;
+    const magic = buffer.readUInt16LE(optionalHeaderOffset);
+
+    if (magic !== 0x10b && magic !== 0x20b) {
+        throw new Error(`Unsupported PE optional header format for ${executablePath}: 0x${magic.toString(16)}`);
+    }
+
+    const subsystemOffset = optionalHeaderOffset + 0x44;
+    const currentSubsystem = buffer.readUInt16LE(subsystemOffset);
+
+    if (currentSubsystem !== IMAGE_SUBSYSTEM_WINDOWS_GUI) {
+        buffer.writeUInt16LE(IMAGE_SUBSYSTEM_WINDOWS_GUI, subsystemOffset);
+        fs.writeFileSync(executablePath, buffer);
+    }
+}
 
 function buildCompileArgs(entrypoint, outfile, windowsMetadata) {
     const args = [
@@ -76,9 +96,19 @@ function runObjcopyWindowsSubsystem(executablePath) {
         return;
     }
 
-    execFileSync('objcopy', ['--subsystem', 'windows', executablePath], {
-        stdio: 'inherit',
-    });
+    try {
+        execFileSync('objcopy', ['--subsystem', 'windows', executablePath], {
+            stdio: 'inherit',
+        });
+    }
+    catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+            patchWindowsGuiSubsystem(executablePath);
+            console.warn(`objcopy not found in PATH. Patched GUI subsystem directly for ${path.basename(executablePath)}.`);
+            return;
+        }
+        throw error;
+    }
 }
 
 if (!fs.existsSync(outputDir)) {

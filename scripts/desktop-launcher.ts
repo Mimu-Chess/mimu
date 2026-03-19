@@ -15,6 +15,74 @@ function requireExecutable(filePath: string) {
     }
 }
 
+function escapePowerShellSingleQuoted(value: string) {
+    return value.replaceAll("'", "''");
+}
+
+async function startServerProcess(): Promise<number | undefined> {
+    if (!isWindows) {
+        const serverProcess = spawn(serverExecutable, [], {
+            cwd: appDirectory,
+            stdio: 'ignore',
+            windowsHide: false,
+            detached: false,
+            shell: false,
+            env: {
+                ...process.env,
+                PORT: process.env.PORT ?? '3001',
+            },
+        });
+        return serverProcess.pid;
+    }
+
+    const escapedExecutable = escapePowerShellSingleQuoted(serverExecutable);
+    const escapedWorkingDirectory = escapePowerShellSingleQuoted(appDirectory);
+    const escapedPort = escapePowerShellSingleQuoted(process.env.PORT ?? '3001');
+    const powerShellScript = [
+        `$env:PORT='${escapedPort}'`,
+        `$process = Start-Process -FilePath '${escapedExecutable}' -WorkingDirectory '${escapedWorkingDirectory}' -WindowStyle Hidden -PassThru`,
+        'Write-Output $process.Id',
+    ].join('; ');
+
+    return await new Promise<number | undefined>((resolve, reject) => {
+        const launcher = spawn('powershell.exe', [
+            '-NoProfile',
+            '-NonInteractive',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            powerShellScript,
+        ], {
+            cwd: appDirectory,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true,
+            shell: false,
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        launcher.stdout.on('data', (chunk) => {
+            stdout += chunk.toString();
+        });
+
+        launcher.stderr.on('data', (chunk) => {
+            stderr += chunk.toString();
+        });
+
+        launcher.on('error', reject);
+        launcher.on('close', (code) => {
+            if (code !== 0) {
+                reject(new Error(stderr.trim() || `Failed to launch hidden server process (exit ${code ?? 'unknown'}).`));
+                return;
+            }
+
+            const pid = Number.parseInt(stdout.trim(), 10);
+            resolve(Number.isFinite(pid) ? pid : undefined);
+        });
+    });
+}
+
 function killServerProcess(pid: number | undefined): Promise<void> {
     if (!pid) {
         return Promise.resolve();
@@ -79,21 +147,11 @@ async function main() {
     requireExecutable(clientExecutable);
     requireExecutable(serverExecutable);
 
-    const serverProcess = spawn(serverExecutable, [], {
-        cwd: appDirectory,
-        stdio: 'ignore',
-        windowsHide: isWindows,
-        detached: false,
-        shell: false,
-        env: {
-            ...process.env,
-            PORT: process.env.PORT ?? '3001',
-        },
-    });
+    const serverPid = await startServerProcess();
 
     const serverReady = await waitForServer(3001, '127.0.0.1', 12000);
     if (!serverReady) {
-        await killServerProcess(serverProcess.pid);
+        await killServerProcess(serverPid);
         throw new Error('Bundled backend did not become ready on 127.0.0.1:3001.');
     }
 
@@ -105,7 +163,7 @@ async function main() {
     });
 
     const shutdown = async (exitCode: number = 0) => {
-        await killServerProcess(serverProcess.pid);
+        await killServerProcess(serverPid);
         process.exit(exitCode);
     };
 

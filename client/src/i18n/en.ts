@@ -63,6 +63,8 @@ const en = {
         themeTitle: 'Board theme',
         themeSubtitle: 'Choose the board palette independently from light and dark mode.',
         customButton: 'Custom',
+        activeThemeLabel: 'Active board palette',
+        themePreviewLabel: 'Theme preview',
     },
     customTheme: {
         title: 'Custom Theme',
