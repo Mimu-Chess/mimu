@@ -12,25 +12,25 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.9",
-    "@mui/material": "^7.3.9",
-    "@neutralinojs/lib": "^6.5.0",
+    "@mui/icons-material": "^9.1.1",
+    "@mui/material": "^9.1.1",
+    "@neutralinojs/lib": "^6.8.0",
     "chess.js": "^1.4.0",
-    "react": "^19.2.0",
+    "react": "^19.2.7",
     "react-chessboard": "^5.10.0",
-    "react-dom": "^19.2.0",
+    "react-dom": "^19.2.7",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.5.0",
-    "@types/react": "^19.2.7",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^10.1.0",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.4.0",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.57.2"
+    "eslint": "^10.5.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.61.0"
   }
 }
